@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -31,7 +31,7 @@ class CartItemResponse(BaseModel):
 
 
 class CartResponse(BaseModel):
-    items: list[CartItemResponse]
+    items: List[CartItemResponse]
     total_price: float
     total_items: int
 

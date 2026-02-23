@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -45,13 +45,13 @@ class OrderResponse(BaseModel):
     delivery_service: Optional[str] = None
     tracking_number: Optional[str] = None
     created_at: datetime
-    items: list[OrderItemResponse] = []
+    items: List[OrderItemResponse] = []
 
     model_config = {"from_attributes": True}
 
 
 class OrderListResponse(BaseModel):
-    items: list[OrderResponse]
+    items: List[OrderResponse]
     total: int
 
 

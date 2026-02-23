@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
@@ -14,7 +14,7 @@ class CategoryResponse(BaseModel):
     is_active: bool
     parent_id: Optional[int] = None
     image_url: Optional[str] = None
-    children: list["CategoryResponse"] = []
+    children: List["CategoryResponse"] = []
 
     model_config = {"from_attributes": True}
 
@@ -91,15 +91,15 @@ class ProductResponse(ProductBase):
     created_at: datetime
     category: Optional[CategoryResponse] = None
     is_favorite: bool = False
-    media: list[ProductMediaResponse] = []
+    media: List[ProductMediaResponse] = []
     modification_type: Optional[ModificationTypeShort] = None
-    variants: list[ProductVariantShort] = []
+    variants: List[ProductVariantShort] = []
 
     model_config = {"from_attributes": True}
 
 
 class ProductListResponse(BaseModel):
-    items: list[ProductResponse]
+    items: List[ProductResponse]
     total: int
     page: int
     per_page: int
@@ -109,7 +109,7 @@ class ProductListResponse(BaseModel):
 
 class BulkPriceRequest(BaseModel):
     scope: str  # "all" | "product_ids" | "price_equals" | "price_range" | "category"
-    product_ids: Optional[list[int]] = None
+    product_ids: Optional[List[int]] = None
     price_equals: Optional[float] = None
     price_min: Optional[float] = None
     price_max: Optional[float] = None
@@ -121,7 +121,7 @@ class BulkPriceRequest(BaseModel):
 
 class BulkPriceResponse(BaseModel):
     updated_count: int
-    product_ids: list[int]
+    product_ids: List[int]
 
 
 # ---- Modification types (admin) ----
@@ -144,7 +144,7 @@ class ModificationTypeResponse(BaseModel):
     id: int
     name: str
     sort_order: int
-    values: list[ModificationValueResponse] = []
+    values: List[ModificationValueResponse] = []
 
     model_config = {"from_attributes": True}
 
@@ -152,7 +152,7 @@ class ModificationTypeResponse(BaseModel):
 class ModificationTypeCreate(BaseModel):
     name: str
     sort_order: int = 0
-    values: list[str] = []  # e.g. ["S", "M", "L"]
+    values: List[str] = []  # e.g. ["S", "M", "L"]
 
 
 class ModificationTypeUpdate(BaseModel):
