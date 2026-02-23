@@ -16,7 +16,7 @@ class BonusTransaction(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     amount: Mapped[float] = mapped_column(Numeric(10, 2))  # positive=credit, negative=debit
     kind: Mapped[str] = mapped_column(String(20))  # welcome, purchase, spend
-    order_id: Mapped[int | None] = mapped_column(ForeignKey("orders.id", ondelete="SET NULL"), nullable=True)
+    order_id: Mapped[Optional[int]] = mapped_column(ForeignKey("orders.id", ondelete="SET NULL"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
