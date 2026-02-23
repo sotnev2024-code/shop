@@ -4,6 +4,8 @@ WORKDIR /app
 COPY frontend/package.json frontend/package-lock.json* ./
 RUN npm ci
 COPY frontend/ ./
+# Больше памяти для сборки Vite (на серверах с малым RAM иначе может падать)
+ENV NODE_OPTIONS=--max-old-space-size=4096
 RUN npm run build
 
 FROM nginx:alpine
