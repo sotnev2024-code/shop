@@ -1,3 +1,5 @@
+from typing import List
+
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,7 +11,7 @@ from app.schemas.banner import BannerResponse
 router = APIRouter()
 
 
-@router.get("/banners", response_model=list[BannerResponse])
+@router.get("/banners", response_model=List[BannerResponse])
 async def get_banners(db: AsyncSession = Depends(get_db)):
     """List active banners for catalog, ordered by sort_order."""
     result = await db.execute(

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import List, Optional, Set
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -37,12 +39,12 @@ def _category_has_stock():
 
 
 def _build_category_tree(
-    categories: list[Category],
-    has_stock_ids: set[int],
-    visible_ids: set[int],
-    parent_id: int | None = None,
-    seen_all_ids: set[int] | None = None,
-) -> list[CategoryResponse]:
+    categories: List[Category],
+    has_stock_ids: Set[int],
+    visible_ids: Set[int],
+    parent_id: Optional[int] = None,
+    seen_all_ids: Optional[Set[int]] = None,
+) -> List[CategoryResponse]:
     """Build tree of CategoryResponse for categories under parent_id. seen_all_ids — чтобы категория «Все» (slug all) не дублировалась."""
     if seen_all_ids is None:
         seen_all_ids = set()
@@ -72,7 +74,7 @@ def _build_category_tree(
     return sorted(out, key=lambda x: (x.sort_order, x.name))
 
 
-@router.get("/categories", response_model=list[CategoryResponse])
+@router.get("/categories", response_model=List[CategoryResponse])
 async def get_categories(db: AsyncSession = Depends(get_db)):
     """Get active categories as tree (roots with children). Only categories with in-stock products or with such descendants."""
     # Категория «Все» (slug all) создаётся при первом запросе, если её нет

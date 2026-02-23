@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,7 +19,7 @@ from app.api.v1.products import _build_media_list, _build_variant_data, _categor
 router = APIRouter()
 
 
-@router.get("/favorites", response_model=list[ProductResponse])
+@router.get("/favorites", response_model=List[ProductResponse])
 async def get_favorites(
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_user),

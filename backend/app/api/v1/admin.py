@@ -7,7 +7,7 @@ import shutil
 from decimal import Decimal
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional, Set, Tuple
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy import select, func, delete
@@ -653,7 +653,7 @@ async def admin_upload_category_image(
 ALL_CATEGORY_SLUG = "all"
 
 
-@router.get("/categories", response_model=list[CategoryResponse])
+@router.get("/categories", response_model=List[CategoryResponse])
 async def admin_list_categories(
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_admin_user),
@@ -793,7 +793,7 @@ async def admin_delete_category(
 
 # ---- Modification types ----
 
-@router.get("/modification-types", response_model=list[ModificationTypeResponse])
+@router.get("/modification-types", response_model=List[ModificationTypeResponse])
 async def admin_list_modification_types(
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_admin_user),
@@ -883,7 +883,7 @@ async def admin_delete_modification_type(
     return {"ok": True}
 
 
-@router.get("/modification-types/{type_id}/values", response_model=list[ModificationValueResponse])
+@router.get("/modification-types/{type_id}/values", response_model=List[ModificationValueResponse])
 async def admin_list_modification_type_values(
     type_id: int,
     db: AsyncSession = Depends(get_db),
@@ -949,7 +949,7 @@ async def admin_delete_modification_type_value(
 
 # ---- Product variants ----
 
-@router.get("/products/{product_id}/variants", response_model=list[ProductVariantResponse])
+@router.get("/products/{product_id}/variants", response_model=List[ProductVariantResponse])
 async def admin_list_product_variants(
     product_id: int,
     db: AsyncSession = Depends(get_db),
@@ -1044,10 +1044,10 @@ async def admin_delete_product_variant(
     return {"ok": True}
 
 
-@router.put("/products/{product_id}/variants", response_model=list[ProductVariantResponse])
+@router.put("/products/{product_id}/variants", response_model=List[ProductVariantResponse])
 async def admin_set_product_variants(
     product_id: int,
-    items: list[ProductVariantCreate],
+    items: List[ProductVariantCreate],
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_admin_user),
 ):
@@ -1056,7 +1056,7 @@ async def admin_set_product_variants(
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
     await db.execute(delete(ProductVariant).where(ProductVariant.product_id == product_id))
-    seen: set[tuple[int, str]] = set()
+    seen: Set[Tuple[int, str]] = set()
     for it in items:
         key = (it.modification_type_id, it.value)
         if key in seen:
@@ -1080,7 +1080,7 @@ async def admin_set_product_variants(
 
 # ---- Promo codes ----
 
-@router.get("/promos", response_model=list[PromoCodeResponse])
+@router.get("/promos", response_model=List[PromoCodeResponse])
 async def admin_get_promos(
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_admin_user),
@@ -1121,7 +1121,7 @@ async def admin_delete_promo(
 
 # ---- Banners ----
 
-@router.get("/banners", response_model=list[BannerResponse])
+@router.get("/banners", response_model=List[BannerResponse])
 async def admin_get_banners(
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_admin_user),
