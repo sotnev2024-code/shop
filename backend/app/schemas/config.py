@@ -15,15 +15,15 @@ class AppConfigResponse(BaseModel):
     mailing_enabled: bool
     currency: str
     yandex_maps_enabled: bool
-    yandex_maps_key: str | None = None
+    yandex_maps_key: Optional[str] = None
     payment_enabled: bool
     support_link: str = ""
     is_admin: bool = False
     is_owner: bool = False
-    bot_photo_url: str | None = None
-    bot_username: str | None = None
-    store_address: str | None = None
-    delivery_city: str | None = None
+    bot_photo_url: Optional[str] = None
+    bot_username: Optional[str] = None
+    store_address: Optional[str] = None
+    delivery_city: Optional[str] = None
     delivery_cost: float = 0
     free_delivery_min_amount: float = 0
     banner_aspect_shape: str = "rectangle"
@@ -67,13 +67,13 @@ class OwnerConfigResponse(BaseModel):
     delivery_yandex_enabled: bool = False
 
     # Integration keys (masked for display)
-    moysklad_token: str | None = None
-    one_c_endpoint: str | None = None
-    one_c_login: str | None = None
-    one_c_password: str | None = None
-    payment_provider_token: str | None = None
-    yandex_maps_key: str | None = None
-    support_link: str | None = None
+    moysklad_token: Optional[str] = None
+    one_c_endpoint: Optional[str] = None
+    one_c_login: Optional[str] = None
+    one_c_password: Optional[str] = None
+    payment_provider_token: Optional[str] = None
+    yandex_maps_key: Optional[str] = None
+    support_link: Optional[str] = None
     sync_interval_minutes: int = 15
 
     model_config = {"from_attributes": True}
