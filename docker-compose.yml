@@ -1,6 +1,7 @@
-# Production-вариант для облака (Timeweb и др.): без version, без именованных volumes, без env_file
-# Переменные backend задайте в панели облака (BOT_TOKEN, WEBAPP_URL, SECRET_KEY, ADMIN_IDS, OWNER_ID)
+# Production для Timeweb: без version, без volumes (ограничение облака), без env_file
+# Переменные backend — в панели облака: BOT_TOKEN, WEBAPP_URL, SECRET_KEY, ADMIN_IDS, OWNER_ID
 # Локальная разработка: docker compose -f docker-compose.dev.yml up -d --build
+# Внимание: без volumes данные PostgreSQL не сохраняются между перезапусками контейнера
 
 services:
   db:
@@ -10,8 +11,6 @@ services:
       POSTGRES_USER: shop_user
       POSTGRES_PASSWORD: shop_pass
       POSTGRES_DB: shop_db
-    volumes:
-      - ./data/postgres:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U shop_user -d shop_db"]
       interval: 5s
