@@ -3,6 +3,8 @@
 Only accessible to the user whose Telegram ID matches OWNER_ID in .env.
 """
 
+from __future__ import annotations
+
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException

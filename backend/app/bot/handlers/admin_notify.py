@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 
 from app.bot.bot import get_bot, is_bot_configured

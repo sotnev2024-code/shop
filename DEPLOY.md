@@ -2,7 +2,9 @@
 
 Краткая инструкция по деплою магазина (Telegram Mini App + админка) на сервер.
 
-## Что нужно на сервере
+> **Без Docker:** пошаговое развёртывание на «голом» сервере (Python, nginx, PostgreSQL, Redis) — см. **[DEPLOY_SERVER.md](DEPLOY_SERVER.md)**.
+
+## Что нужно на сервере (вариант с Docker)
 
 - **Docker** и **Docker Compose** (v2: `docker compose`)
 - Домен или IP, на который будет открыт сайт

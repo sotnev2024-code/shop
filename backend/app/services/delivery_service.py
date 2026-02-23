@@ -3,6 +3,8 @@ Delivery service integrations.
 Placeholder for future delivery API integrations (CDEK, Russian Post, Boxberry, DPD).
 """
 
+from __future__ import annotations
+
 from typing import Any
 
 
