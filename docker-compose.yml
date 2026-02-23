@@ -1,4 +1,6 @@
-version: "3.8"
+# Production-вариант для облака (Timeweb и др.): без version, без именованных volumes, без env_file
+# Переменные backend задайте в панели облака (BOT_TOKEN, WEBAPP_URL, SECRET_KEY, ADMIN_IDS, OWNER_ID)
+# Локальная разработка: docker compose -f docker-compose.dev.yml up -d --build
 
 services:
   db:
@@ -9,9 +11,7 @@ services:
       POSTGRES_PASSWORD: shop_pass
       POSTGRES_DB: shop_db
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+      - ./data/postgres:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U shop_user -d shop_db"]
       interval: 5s
@@ -21,8 +21,6 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    ports:
-      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -32,45 +30,32 @@ services:
   backend:
     build: ./backend
     restart: unless-stopped
-    env_file:
-      - ./backend/.env
-    ports:
-      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://shop_user:shop_pass@db:5432/shop_db
+      REDIS_URL: redis://redis:6379/0
+      BOT_TOKEN: ${BOT_TOKEN}
+      WEBAPP_URL: ${WEBAPP_URL}
+      ADMIN_CHAT_ID: ${ADMIN_CHAT_ID:-0}
+      SECRET_KEY: ${SECRET_KEY:-change-me}
+      ADMIN_IDS: ${ADMIN_IDS}
+      OWNER_ID: ${OWNER_ID:-0}
+      CHECKOUT_TYPE: ${CHECKOUT_TYPE:-basic}
+      PRODUCT_SOURCE: ${PRODUCT_SOURCE:-database}
+      DELIVERY_ENABLED: ${DELIVERY_ENABLED:-false}
+      PICKUP_ENABLED: ${PICKUP_ENABLED:-true}
+      PROMO_ENABLED: ${PROMO_ENABLED:-true}
     depends_on:
       db:
         condition: service_healthy
       redis:
         condition: service_healthy
-    volumes:
-      - ./backend:/app
 
-  frontend:
-    build: ./frontend
-    restart: unless-stopped
-    ports:
-      - "3000:3000"
-    depends_on:
-      - backend
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-
-  nginx:
-    image: nginx:alpine
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
     restart: unless-stopped
     ports:
       - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf
     depends_on:
       - backend
-      - frontend
-
-volumes:
-  postgres_data:
-
-
-
-
-
