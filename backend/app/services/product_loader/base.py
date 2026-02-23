@@ -1,14 +1,14 @@
-from abc import ABC, abstractmethod
 from __future__ import annotations
 
-from typing import Any
+from abc import ABC, abstractmethod
+from typing import Any, Dict, List
 
 
 class BaseProductLoader(ABC):
     """Abstract base class for product loaders."""
 
     @abstractmethod
-    async def load_products(self) -> list[dict[str, Any]]:
+    async def load_products(self) -> List[Dict[str, Any]]:
         """Load products from source."""
         ...
 
