@@ -14,6 +14,11 @@ frontend/dist/
 # Environment
 .env
 *.env.local
+backend/.env
+
+# Server / runtime
+backend/shop.db
+backend/uploads/
 
 # IDE
 .idea/

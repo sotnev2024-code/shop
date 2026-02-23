@@ -49,8 +49,9 @@ export const ProfilePage: React.FC = () => {
   };
 
   const handleSupport = () => {
-    const supportLink = config?.support_link;
-    if (!supportLink) return;
+    const raw = config?.support_link?.trim();
+    if (!raw) return;
+    const supportLink = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
     try {
       const tg = window.Telegram?.WebApp;
       if (tg?.openTelegramLink) {
@@ -59,7 +60,6 @@ export const ProfilePage: React.FC = () => {
         window.open(supportLink, '_blank');
       }
     } catch {
-      // openTelegramLink can throw (e.g. WebApp 6.0: "Url host is not supported")
       window.open(supportLink, '_blank');
     }
   };

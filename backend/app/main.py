@@ -11,6 +11,16 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.config import settings, ProductSource
 from app.bot.bot import get_bot, dp, setup_bot, is_bot_configured
+
+try:
+    from aiogram.exceptions import TelegramNetworkError
+except ImportError:
+    TelegramNetworkError = Exception
+try:
+    from aiohttp.client_exceptions import ServerDisconnectedError, ClientError
+except ImportError:
+    ServerDisconnectedError = ConnectionError
+    ClientError = ConnectionError
 from app.api.v1 import products, categories, cart, favorites, orders, payments, promo, config, admin, owner, banners, user as user_router
 
 UPLOADS_DIR = Path(__file__).resolve().parent.parent / "uploads"
@@ -52,8 +62,19 @@ async def _ensure_tables():
         raise
 
 
+def _asyncio_exception_handler(loop, context):
+    """Log unhandled task exceptions (e.g. from bot polling) so they don't spam 'never retrieved'."""
+    exc = context.get("exception")
+    if exc is not None:
+        logger.warning("Async task error (bot/background): %s", exc, exc_info=exc)
+    else:
+        logger.warning("Async context: %s", context)
+
+
 @asynccontextmanager
 async def lifespan(application: FastAPI):
+    asyncio.get_running_loop().set_exception_handler(_asyncio_exception_handler)
+
     # Startup — ensure DB tables exist
     await _ensure_tables()
 
@@ -61,7 +82,32 @@ async def lifespan(application: FastAPI):
     if is_bot_configured():
         await setup_bot()
         bot = get_bot()
-        polling_task = asyncio.create_task(dp.start_polling(bot))
+
+        async def _polling_with_recovery():
+            """Run bot polling; on network errors log and retry so the API process stays up."""
+            while True:
+                try:
+                    await dp.start_polling(bot)
+                    break
+                except asyncio.CancelledError:
+                    raise
+                except (
+                    TelegramNetworkError,
+                    ConnectionError,
+                    OSError,
+                    ServerDisconnectedError,
+                    ClientError,
+                ) as e:
+                    logger.warning(
+                        "Bot polling network error (API keeps running): %s. Retry in 30s.",
+                        e,
+                    )
+                    await asyncio.sleep(30)
+                except Exception as e:
+                    logger.exception("Bot polling error. Retry in 30s: %s", e)
+                    await asyncio.sleep(30)
+
+        polling_task = asyncio.create_task(_polling_with_recovery())
         logger.info("Bot polling started!")
     else:
         logger.warning(

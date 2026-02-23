@@ -163,13 +163,14 @@ export const CatalogPage: React.FC = () => {
                 />
               );
               if (banner.link && banner.link.trim()) {
-                const isExternal = /^https?:\/\//i.test(banner.link.trim());
+                const raw = banner.link.trim();
+                const href = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
                 return (
                   <a
                     key={banner.id}
-                    href={banner.link.trim()}
-                    target={isExternal ? '_blank' : undefined}
-                    rel={isExternal ? 'noopener noreferrer' : undefined}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className={wrapper}
                     style={wrapperStyle}
                   >

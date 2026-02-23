@@ -1,0 +1,3 @@
+# Скрипты и конфиги — только LF, иначе на Linux ошибки типа $'\r': command not found
+*.sh text eol=lf
+deploy.sh text eol=lf
