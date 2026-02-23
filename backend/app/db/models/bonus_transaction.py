@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Optional
 
 from sqlalchemy import DateTime, ForeignKey, Numeric, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -21,4 +22,4 @@ class BonusTransaction(Base):
     )
 
     user: Mapped["User"] = relationship(back_populates="bonus_transactions")
-    order: Mapped["Order | None"] = relationship()
+    order: Mapped[Optional["Order"]] = relationship()

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Optional
 
 from sqlalchemy import Boolean, DateTime, Integer, Numeric, String, func
 from sqlalchemy.orm import Mapped, mapped_column
@@ -17,12 +18,12 @@ class PromoCode(Base):
     discount_value: Mapped[float] = mapped_column(Numeric(10, 2))
     first_order_only: Mapped[bool] = mapped_column(Boolean, default=False)
     min_order_amount: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
-    max_uses: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    max_uses: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     used_count: Mapped[int] = mapped_column(Integer, default=0)
-    valid_from: Mapped[datetime | None] = mapped_column(
+    valid_from: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
-    valid_until: Mapped[datetime | None] = mapped_column(
+    valid_until: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List
+from typing import List, Optional
 
 from sqlalchemy import Boolean, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -16,10 +16,10 @@ class Category(Base):
     slug: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    parent_id: Mapped[int | None] = mapped_column(
+    parent_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("categories.id", ondelete="SET NULL"), nullable=True, index=True
     )
-    image_url: Mapped[str | None] = mapped_column(String(1000), nullable=True)
+    image_url: Mapped[Optional[str]] = mapped_column(String(1000), nullable=True)
 
     parent: Mapped["Category"] = relationship(
         remote_side="Category.id", back_populates="children"

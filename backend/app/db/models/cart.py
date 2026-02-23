@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Optional
+
 from sqlalchemy import ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -19,15 +21,15 @@ class CartItem(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     product_id: Mapped[int] = mapped_column(ForeignKey("products.id", ondelete="CASCADE"))
     quantity: Mapped[int] = mapped_column(Integer, default=1)
-    modification_type_id: Mapped[int | None] = mapped_column(
+    modification_type_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("modification_types.id", ondelete="CASCADE"), nullable=True, index=True
     )
-    modification_value: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    modification_value: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     variant_key: Mapped[str] = mapped_column(String(320), default="")
 
     user: Mapped["User"] = relationship(back_populates="cart_items")
     product: Mapped["Product"] = relationship(back_populates="cart_items")
-    modification_type: Mapped["ModificationType | None"] = relationship()
+    modification_type: Mapped[Optional["ModificationType"]] = relationship()
 
 
 

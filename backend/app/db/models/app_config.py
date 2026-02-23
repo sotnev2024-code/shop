@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Optional
+
 from sqlalchemy import Boolean, Float, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -14,8 +16,8 @@ class AppConfig(Base):
     # --- Shop settings (admin-editable) ---
     shop_name: Mapped[str] = mapped_column(String(255), default="My Shop")
     currency: Mapped[str] = mapped_column(String(10), default="RUB")
-    store_address: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
-    delivery_city: Mapped[str | None] = mapped_column(String(255), nullable=True, default=None)
+    store_address: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default=None)
+    delivery_city: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, default=None)
     delivery_cost: Mapped[float] = mapped_column(Float, default=0)
     free_delivery_min_amount: Mapped[float] = mapped_column(Float, default=0)
 
@@ -28,13 +30,13 @@ class AppConfig(Base):
     mailing_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # --- Integration keys (owner-editable) ---
-    moysklad_token: Mapped[str | None] = mapped_column(String(500), nullable=True, default=None)
-    one_c_endpoint: Mapped[str | None] = mapped_column(String(500), nullable=True, default=None)
-    one_c_login: Mapped[str | None] = mapped_column(String(255), nullable=True, default=None)
-    one_c_password: Mapped[str | None] = mapped_column(String(255), nullable=True, default=None)
-    payment_provider_token: Mapped[str | None] = mapped_column(String(500), nullable=True, default=None)
-    yandex_maps_key: Mapped[str | None] = mapped_column(String(500), nullable=True, default=None)
-    support_link: Mapped[str | None] = mapped_column(String(500), nullable=True, default=None)
+    moysklad_token: Mapped[Optional[str]] = mapped_column(String(500), nullable=True, default=None)
+    one_c_endpoint: Mapped[Optional[str]] = mapped_column(String(500), nullable=True, default=None)
+    one_c_login: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, default=None)
+    one_c_password: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, default=None)
+    payment_provider_token: Mapped[Optional[str]] = mapped_column(String(500), nullable=True, default=None)
+    yandex_maps_key: Mapped[Optional[str]] = mapped_column(String(500), nullable=True, default=None)
+    support_link: Mapped[Optional[str]] = mapped_column(String(500), nullable=True, default=None)
     sync_interval_minutes: Mapped[int] = mapped_column(Integer, default=15)
 
     # --- Delivery service toggles (owner-editable, future-proofing) ---
