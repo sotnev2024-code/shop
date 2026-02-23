@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Dict, List, Optional
 
 from sqlalchemy import DateTime, ForeignKey, Integer, JSON, Numeric, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -25,7 +26,7 @@ class Order(Base):
     customer_name: Mapped[str] = mapped_column(String(255), default="")
     customer_phone: Mapped[str] = mapped_column(String(50), default="")
     address: Mapped[str | None] = mapped_column(Text, nullable=True)
-    address_coords: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    address_coords: Mapped[Optional[Dict]] = mapped_column(JSON, nullable=True)
     payment_status: Mapped[str | None] = mapped_column(String(50), nullable=True)
     delivery_service: Mapped[str | None] = mapped_column(String(100), nullable=True)
     tracking_number: Mapped[str | None] = mapped_column(String(255), nullable=True)
@@ -34,7 +35,7 @@ class Order(Base):
     )
 
     user: Mapped["User"] = relationship(back_populates="orders")
-    items: Mapped[list["OrderItem"]] = relationship(
+    items: Mapped[List["OrderItem"]] = relationship(
         back_populates="order", cascade="all, delete-orphan"
     )
     promo_code: Mapped["PromoCode | None"] = relationship()

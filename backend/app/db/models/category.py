@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import List
+
 from sqlalchemy import Boolean, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -22,10 +24,10 @@ class Category(Base):
     parent: Mapped["Category"] = relationship(
         remote_side="Category.id", back_populates="children"
     )
-    children: Mapped[list["Category"]] = relationship(
+    children: Mapped[List["Category"]] = relationship(
         back_populates="parent", order_by="Category.sort_order"
     )
-    products: Mapped[list["Product"]] = relationship(back_populates="category")
+    products: Mapped[List["Product"]] = relationship(back_populates="category")
 
 
 

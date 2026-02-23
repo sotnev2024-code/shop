@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import List
+
 from sqlalchemy import Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -13,11 +15,11 @@ class ModificationType(Base):
     name: Mapped[str] = mapped_column(String(100))
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
 
-    values: Mapped[list["ModificationValue"]] = relationship(
+    values: Mapped[List["ModificationValue"]] = relationship(
         back_populates="modification_type",
         cascade="all, delete-orphan",
         order_by="ModificationValue.sort_order",
     )
-    product_variants: Mapped[list["ProductVariant"]] = relationship(
+    product_variants: Mapped[List["ProductVariant"]] = relationship(
         back_populates="modification_type", cascade="all, delete-orphan"
     )

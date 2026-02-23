@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import List
 
 from sqlalchemy import BigInteger, DateTime, Numeric, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -23,10 +24,10 @@ class User(Base):
     )
     bonus_balance: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
 
-    cart_items: Mapped[list["CartItem"]] = relationship(back_populates="user", cascade="all, delete-orphan")
-    favorites: Mapped[list["Favorite"]] = relationship(back_populates="user", cascade="all, delete-orphan")
-    orders: Mapped[list["Order"]] = relationship(back_populates="user")
-    bonus_transactions: Mapped[list["BonusTransaction"]] = relationship(
+    cart_items: Mapped[List["CartItem"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    favorites: Mapped[List["Favorite"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    orders: Mapped[List["Order"]] = relationship(back_populates="user")
+    bonus_transactions: Mapped[List["BonusTransaction"]] = relationship(
         back_populates="user", cascade="all, delete-orphan"
     )
 

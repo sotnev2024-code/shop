@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import List
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -28,14 +29,14 @@ class Product(Base):
     )
 
     category: Mapped["Category"] = relationship(back_populates="products")
-    cart_items: Mapped[list["CartItem"]] = relationship(back_populates="product")
-    favorites: Mapped[list["Favorite"]] = relationship(back_populates="product")
-    media: Mapped[list["ProductMedia"]] = relationship(
+    cart_items: Mapped[List["CartItem"]] = relationship(back_populates="product")
+    favorites: Mapped[List["Favorite"]] = relationship(back_populates="product")
+    media: Mapped[List["ProductMedia"]] = relationship(
         back_populates="product",
         cascade="all, delete-orphan",
         order_by="ProductMedia.sort_order",
     )
-    variants: Mapped[list["ProductVariant"]] = relationship(
+    variants: Mapped[List["ProductVariant"]] = relationship(
         back_populates="product",
         cascade="all, delete-orphan",
     )
