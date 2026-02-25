@@ -155,17 +155,29 @@ export const AdminProductsPage: React.FC = () => {
         }
       }
 
-      // Upload any pending files
+      // Upload any pending files (e.g. video for new product)
+      const uploadErrors: string[] = [];
       if (productId && pendingFiles.length > 0) {
         setUploading(true);
         for (const file of pendingFiles) {
           try {
             await adminUploadMedia(productId, file);
-          } catch (err) {
+          } catch (err: any) {
+            const msg = err?.response?.data?.detail ?? err?.message ?? 'неизвестная ошибка';
+            uploadErrors.push(`${file.name}: ${msg}`);
             console.error('Upload error for file:', file.name, err);
           }
         }
         setUploading(false);
+        if (uploadErrors.length > 0) {
+          setEditId(productId);
+          setMediaItems([]);
+          setPendingFiles([]);
+          setErrorMsg(`Товар сохранён. Не удалось загрузить файлы — попробуйте загрузить снова: ${uploadErrors.join('; ')}`);
+          fetchProducts();
+          setSaving(false);
+          return;
+        }
       }
 
       resetForm();

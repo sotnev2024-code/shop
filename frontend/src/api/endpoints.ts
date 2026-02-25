@@ -129,9 +129,8 @@ export const adminBulkPriceUpdate = (data: BulkPriceRequest) =>
 export const adminUploadMedia = (productId: number, file: File) => {
   const formData = new FormData();
   formData.append('file', file);
-  return api.post<import('../types').ProductMedia>(`/admin/products/${productId}/media`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  // Do not set Content-Type: axios must add multipart/form-data with boundary for file to be parsed
+  return api.post<import('../types').ProductMedia>(`/admin/products/${productId}/media`, formData);
 };
 export const adminDeleteMedia = (productId: number, mediaId: number) =>
   api.delete(`/admin/products/${productId}/media/${mediaId}`);
@@ -139,9 +138,7 @@ export const adminGetCategories = () => api.get<Category[]>('/admin/categories')
 export const adminUploadCategoryImage = (file: File) => {
   const formData = new FormData();
   formData.append('file', file);
-  return api.post<{ url: string }>('/admin/categories/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  return api.post<{ url: string }>('/admin/categories/upload', formData);
 };
 export const adminCreateCategory = (data: { name: string; slug: string; sort_order?: number; parent_id?: number | null; image_url?: string | null }) =>
   api.post<Category>('/admin/categories', data);
@@ -177,9 +174,7 @@ export const adminGetBanners = () => api.get<Banner[]>('/admin/banners');
 export const adminUploadBannerImage = (file: File) => {
   const formData = new FormData();
   formData.append('file', file);
-  return api.post<{ url: string }>('/admin/banners/upload', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  return api.post<{ url: string }>('/admin/banners/upload', formData);
 };
 export const adminCreateBanner = (data: {
   image_url: string;
