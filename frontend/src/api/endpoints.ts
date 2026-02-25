@@ -117,6 +117,7 @@ export const adminGetProducts = (params?: {
   page?: number;
   per_page?: number;
   category_id?: number;
+  search?: string;
   price_equals?: number;
   price_min?: number;
   price_max?: number;

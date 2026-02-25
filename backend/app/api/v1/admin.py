@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import List, Optional, Set, Tuple
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
-from sqlalchemy import select, func, delete
+from sqlalchemy import select, func, delete, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
@@ -224,18 +224,32 @@ async def admin_update_order(
 
 # ---- Product management ----
 
+def _admin_search_filter(search: str):
+    """Filter by name or description containing search (case-insensitive). Escape % and _ for LIKE."""
+    s = (search or "").strip()
+    if not s:
+        return None
+    escaped = s.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_").lower()
+    pattern = f"%{escaped}%"
+    return or_(
+        func.lower(Product.name).like(pattern, escape="\\"),
+        func.lower(Product.description).like(pattern, escape="\\"),
+    )
+
+
 @router.get("/products", response_model=ProductListResponse)
 async def admin_list_products(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     category_id: Optional[int] = None,
+    search: Optional[str] = None,
     price_equals: Optional[float] = None,
     price_min: Optional[float] = None,
     price_max: Optional[float] = None,
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_admin_user),
 ):
-    """List all products for admin (no availability/stock filter). Optional filters by category, price."""
+    """List all products for admin (no availability/stock filter). Optional filters by category, search, price."""
     query = select(Product)
 
     if category_id is not None:
@@ -249,6 +263,9 @@ async def admin_list_products(
             product_category.c.category_id.in_(select(category_ids_cte.c.id))
         )
         query = query.where(Product.id.in_(product_ids_in_cat))
+    search_filter = _admin_search_filter(search or "")
+    if search_filter is not None:
+        query = query.where(search_filter)
     if price_equals is not None:
         query = query.where(Product.price == price_equals)
     if price_min is not None:
