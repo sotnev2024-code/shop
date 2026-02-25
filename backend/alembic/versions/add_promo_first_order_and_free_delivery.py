@@ -1,7 +1,7 @@
 """Add promo first_order_only
 
 Revision ID: add_promo_first_order
-Revises: add_delivery_cost
+Revises: product_categories_m2m
 Create Date: 2026-02-21
 
 """
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 revision: str = "add_promo_first_order"
-down_revision: Union[str, None] = "add_delivery_cost"
+down_revision: Union[str, None] = "product_categories_m2m"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
