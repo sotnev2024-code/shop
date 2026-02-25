@@ -51,7 +51,14 @@ export const ProfilePage: React.FC = () => {
   const handleSupport = () => {
     const raw = config?.support_link?.trim();
     if (!raw) return;
-    const supportLink = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+    let supportLink: string;
+    if (/^https?:\/\//i.test(raw)) {
+      supportLink = raw;
+    } else if (raw.startsWith('@')) {
+      supportLink = `https://t.me/${raw.slice(1)}`;
+    } else {
+      supportLink = `https://t.me/${raw.replace(/^@/, '')}`;
+    }
     try {
       const tg = window.Telegram?.WebApp;
       if (tg?.openTelegramLink) {

@@ -20,6 +20,8 @@ class AppConfig(Base):
     delivery_city: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, default=None)
     delivery_cost: Mapped[float] = mapped_column(Float, default=0)
     free_delivery_min_amount: Mapped[float] = mapped_column(Float, default=0)
+    min_order_amount_pickup: Mapped[float] = mapped_column(Float, default=0)
+    min_order_amount_delivery: Mapped[float] = mapped_column(Float, default=0)
 
     # --- Module toggles (owner-editable) ---
     checkout_type: Mapped[str] = mapped_column(String(50), default="basic")
@@ -50,6 +52,9 @@ class AppConfig(Base):
 
     # --- Category image size in catalog (admin-editable: small, medium, large, xlarge) ---
     category_image_size: Mapped[str] = mapped_column(String(20), default="medium")
+
+    # --- Admins: comma-separated telegram_id; if set, overrides .env ADMIN_IDS ---
+    admin_ids: Mapped[Optional[str]] = mapped_column(String(500), nullable=True, default=None)
 
     # --- Bonus system (admin-editable) ---
     bonus_enabled: Mapped[bool] = mapped_column(Boolean, default=False)

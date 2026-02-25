@@ -19,6 +19,8 @@ export interface AppConfig {
   delivery_city: string | null;
   delivery_cost: number;
   free_delivery_min_amount: number;
+  min_order_amount_pickup: number;
+  min_order_amount_delivery: number;
   banner_aspect_shape: 'square' | 'rectangle';
   banner_size: 'small' | 'medium' | 'large' | 'xl';
   category_image_size: 'small' | 'medium' | 'large' | 'xlarge';

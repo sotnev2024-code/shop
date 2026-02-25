@@ -143,12 +143,19 @@ async def _apply_welcome_bonus(db: AsyncSession, user: User) -> None:
 
 async def get_admin_user(
     user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ) -> User:
-    """Check that user is an admin."""
-    # In dev mode, everyone is admin
+    """Check that user is an admin. Admin list: AppConfig.admin_ids if set, else .env ADMIN_IDS."""
     if settings.dev_mode:
         return user
-    if user.telegram_id not in settings.admin_id_list:
+    result = await db.execute(select(AppConfig).limit(1))
+    config = result.scalar_one_or_none()
+    admin_ids_raw = getattr(config, "admin_ids", None) if config else None
+    if admin_ids_raw and str(admin_ids_raw).strip():
+        admin_list = [int(x.strip()) for x in str(admin_ids_raw).split(",") if x.strip()]
+    else:
+        admin_list = settings.admin_id_list
+    if user.telegram_id not in admin_list:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required",

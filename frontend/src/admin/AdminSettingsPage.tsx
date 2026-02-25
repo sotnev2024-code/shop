@@ -23,6 +23,11 @@ export const AdminSettingsPage: React.FC = () => {
   const [deliveryCity, setDeliveryCity] = useState('');
   const [deliveryCost, setDeliveryCost] = useState('');
   const [freeDeliveryMinAmount, setFreeDeliveryMinAmount] = useState('');
+  const [minOrderAmountPickup, setMinOrderAmountPickup] = useState('');
+  const [minOrderAmountDelivery, setMinOrderAmountDelivery] = useState('');
+  const [supportLink, setSupportLink] = useState('');
+  const [adminIds, setAdminIds] = useState('');
+  const [currentTelegramId, setCurrentTelegramId] = useState<number | null>(null);
   const [logoUrl, setLogoUrl] = useState('');
   const [bannerAspectShape, setBannerAspectShape] = useState<'square' | 'rectangle'>('rectangle');
   const [bannerSize, setBannerSize] = useState<'small' | 'medium' | 'large' | 'xl'>('medium');
@@ -78,11 +83,12 @@ export const AdminSettingsPage: React.FC = () => {
   const [bulkError, setBulkError] = useState('');
   const [bulkSuccess, setBulkSuccess] = useState('');
 
-  type SettingsSection = 'general' | 'delivery' | 'banners' | 'bonuses' | 'categories' | 'modifications' | 'bulk';
+  type SettingsSection = 'general' | 'admins' | 'delivery' | 'banners' | 'bonuses' | 'categories' | 'modifications' | 'bulk';
   const [activeSection, setActiveSection] = useState<SettingsSection>('general');
 
   const sections: { id: SettingsSection; label: string }[] = [
     { id: 'general', label: 'Основные' },
+    { id: 'admins', label: 'Администраторы' },
     { id: 'delivery', label: 'Доставка' },
     { id: 'banners', label: 'Баннеры и каталог' },
     { id: 'bonuses', label: 'Бонусы' },
@@ -102,6 +108,11 @@ export const AdminSettingsPage: React.FC = () => {
       setDeliveryCity(data.delivery_city || '');
       setDeliveryCost(String(data.delivery_cost ?? 0));
       setFreeDeliveryMinAmount(String(data.free_delivery_min_amount ?? 0));
+      setMinOrderAmountPickup(String(data.min_order_amount_pickup ?? 0));
+      setMinOrderAmountDelivery(String(data.min_order_amount_delivery ?? 0));
+      setSupportLink(data.support_link ?? '');
+      setAdminIds(data.admin_ids ?? '');
+      setCurrentTelegramId(data.current_telegram_id ?? null);
       setBannerAspectShape(data.banner_aspect_shape === 'square' ? 'square' : 'rectangle');
       setBannerSize(
         data.banner_size === 'small' ? 'small'
@@ -184,6 +195,10 @@ export const AdminSettingsPage: React.FC = () => {
       delivery_city: deliveryCity,
       delivery_cost: parseFloat(deliveryCost) || 0,
       free_delivery_min_amount: parseFloat(freeDeliveryMinAmount) || 0,
+      min_order_amount_pickup: parseFloat(minOrderAmountPickup) || 0,
+      min_order_amount_delivery: parseFloat(minOrderAmountDelivery) || 0,
+      support_link: supportLink.trim() || null,
+      admin_ids: adminIds.trim(),
       banner_aspect_shape: bannerAspectShape,
       banner_size: bannerSize,
       category_image_size: categoryImageSize,
@@ -620,6 +635,55 @@ export const AdminSettingsPage: React.FC = () => {
               <input type="checkbox" checked={deliveryEnabled} onChange={(e) => setDeliveryEnabled(e.target.checked)} className="w-5 h-5 rounded" />
               <span className="text-sm text-tg-text">Доставка</span>
             </label>
+          </div>
+          <Input
+            label="Минимальная сумма заказа — самовывоз (₽)"
+            type="number"
+            min={0}
+            step={1}
+            placeholder="0 = без ограничения"
+            value={minOrderAmountPickup}
+            onChange={(e) => setMinOrderAmountPickup(e.target.value)}
+          />
+          <Input
+            label="Минимальная сумма заказа — доставка (₽)"
+            type="number"
+            min={0}
+            step={1}
+            placeholder="0 = без ограничения"
+            value={minOrderAmountDelivery}
+            onChange={(e) => setMinOrderAmountDelivery(e.target.value)}
+          />
+          <Input
+            label="Поддержка — @username или ссылка"
+            placeholder="@username или https://t.me/username"
+            value={supportLink}
+            onChange={(e) => setSupportLink(e.target.value)}
+          />
+          <p className="text-xs text-tg-hint -mt-2">При нажатии кнопки «Поддержка» в профиле откроется чат с указанным пользователем.</p>
+          <Button onClick={handleSave} fullWidth>{saved ? '✓ Сохранено!' : 'Сохранить'}</Button>
+        </div>
+      )}
+
+      {/* --- Администраторы --- */}
+      {activeSection === 'admins' && (
+        <div className="space-y-4">
+          <h2 className="text-base font-semibold text-tg-text">Администраторы</h2>
+          {currentTelegramId != null && (
+            <p className="text-sm text-tg-hint">
+              Ваш Telegram ID: <strong className="text-tg-text">{currentTelegramId}</strong>. Добавьте его в список, чтобы не потерять доступ.
+            </p>
+          )}
+          <div>
+            <label className="block text-sm font-medium text-tg-hint mb-1">Telegram ID админов (через запятую)</label>
+            <input
+              type="text"
+              value={adminIds}
+              onChange={(e) => setAdminIds(e.target.value)}
+              placeholder="123456789, 987654321"
+              className="w-full px-4 py-2.5 rounded-xl bg-tg-secondary text-tg-text border-none outline-none"
+            />
+            <p className="text-xs text-tg-hint mt-1">Пользователи с этими Telegram ID получат доступ к админ-панели. Узнать ID: пользователь пишет боту /start — ID можно увидеть в логах или через @userinfobot.</p>
           </div>
           <Button onClick={handleSave} fullWidth>{saved ? '✓ Сохранено!' : 'Сохранить'}</Button>
         </div>

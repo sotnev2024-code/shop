@@ -1337,6 +1337,7 @@ async def admin_get_settings(
     """Get app settings."""
     result = await db.execute(select(AppConfig).limit(1))
     config = result.scalar_one_or_none()
+    default_admin_ids = settings.admin_ids or ""
     if not config:
         return {
             "shop_name": "My Shop",
@@ -1345,6 +1346,9 @@ async def admin_get_settings(
             "currency": "RUB",
             "store_address": None,
             "delivery_city": None,
+            "support_link": None,
+            "admin_ids": default_admin_ids,
+            "current_telegram_id": admin.telegram_id,
             "banner_aspect_shape": "rectangle",
             "banner_size": "medium",
             "category_image_size": "medium",
@@ -1358,6 +1362,8 @@ async def admin_get_settings(
             "bonus_spend_limit_value": 0,
             "delivery_cost": 0,
             "free_delivery_min_amount": 0,
+            "min_order_amount_pickup": 0,
+            "min_order_amount_delivery": 0,
         }
     return {
         "shop_name": config.shop_name,
@@ -1368,6 +1374,11 @@ async def admin_get_settings(
         "delivery_city": config.delivery_city,
         "delivery_cost": float(getattr(config, "delivery_cost", 0)),
         "free_delivery_min_amount": float(getattr(config, "free_delivery_min_amount", 0)),
+        "min_order_amount_pickup": float(getattr(config, "min_order_amount_pickup", 0)),
+        "min_order_amount_delivery": float(getattr(config, "min_order_amount_delivery", 0)),
+        "support_link": getattr(config, "support_link", None) or None,
+        "admin_ids": (getattr(config, "admin_ids", None) or "").strip() or default_admin_ids,
+        "current_telegram_id": admin.telegram_id,
         "banner_aspect_shape": getattr(config, "banner_aspect_shape", "rectangle"),
         "banner_size": getattr(config, "banner_size", "medium"),
         "category_image_size": getattr(config, "category_image_size", "medium"),
@@ -1398,18 +1409,35 @@ async def admin_update_settings(
     allowed = {
         "shop_name", "pickup_enabled", "delivery_enabled",
         "currency", "store_address", "delivery_city",
+        "support_link", "admin_ids",
         "banner_aspect_shape", "banner_size", "category_image_size",
         "bonus_enabled", "bonus_welcome_enabled", "bonus_welcome_amount",
         "bonus_purchase_enabled", "bonus_purchase_percent",
         "bonus_spend_enabled",         "bonus_spend_limit_type", "bonus_spend_limit_value",
         "delivery_cost", "free_delivery_min_amount",
+        "min_order_amount_pickup", "min_order_amount_delivery",
     }
     for key, value in data.items():
         if key not in allowed:
             continue
-        if key in ("store_address", "delivery_city"):
+        if key in ("store_address", "delivery_city", "support_link"):
             value = value.strip() if isinstance(value, str) and value.strip() else None
-        if key in ("bonus_welcome_amount", "bonus_purchase_percent", "bonus_spend_limit_value", "delivery_cost", "free_delivery_min_amount"):
+        if key == "admin_ids":
+            # Accept string (comma-separated) or list of ints; prevent lockout: keep current admin in list
+            if isinstance(value, list):
+                new_ids = [int(x) for x in value if x is not None]
+            else:
+                raw = (value or "").strip() if isinstance(value, str) else ""
+                new_ids = [int(x.strip()) for x in raw.split(",") if x.strip()]
+            current_id = admin.telegram_id
+            old_raw = getattr(config, "admin_ids", None)
+            old_list = [int(x.strip()) for x in str(old_raw or "").split(",") if x.strip()] if old_raw else []
+            if not old_list:
+                old_list = settings.admin_id_list
+            if current_id in old_list and current_id not in new_ids:
+                new_ids.append(current_id)  # prevent lockout
+            value = ",".join(str(i) for i in new_ids) if new_ids else None
+        if key in ("bonus_welcome_amount", "bonus_purchase_percent", "bonus_spend_limit_value", "delivery_cost", "free_delivery_min_amount", "min_order_amount_pickup", "min_order_amount_delivery"):
             value = float(value) if value is not None else 0
         setattr(config, key, value)
 

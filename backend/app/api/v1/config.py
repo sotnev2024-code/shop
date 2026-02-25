@@ -25,7 +25,13 @@ async def get_app_config(
     result = await db.execute(select(AppConfig).limit(1))
     config = result.scalar_one_or_none()
 
-    is_admin = user.telegram_id in settings.admin_id_list
+    # Admin list: from DB (AppConfig.admin_ids) if set, else .env
+    admin_ids_raw = getattr(config, "admin_ids", None) if config else None
+    if config and admin_ids_raw and str(admin_ids_raw).strip():
+        _admin_list = [int(x.strip()) for x in str(admin_ids_raw).split(",") if x.strip()]
+    else:
+        _admin_list = settings.admin_id_list
+    is_admin = user.telegram_id in _admin_list
     is_owner = (
         settings.dev_mode
         or (settings.owner_id != 0 and user.telegram_id == settings.owner_id)
@@ -59,6 +65,8 @@ async def get_app_config(
             delivery_city=None,
             delivery_cost=0,
             free_delivery_min_amount=0,
+            min_order_amount_pickup=0,
+            min_order_amount_delivery=0,
             banner_aspect_shape="rectangle",
             banner_size="medium",
             category_image_size="medium",
@@ -103,6 +111,8 @@ async def get_app_config(
         delivery_city=config.delivery_city,
         delivery_cost=float(getattr(config, "delivery_cost", 0)),
         free_delivery_min_amount=float(getattr(config, "free_delivery_min_amount", 0)),
+        min_order_amount_pickup=float(getattr(config, "min_order_amount_pickup", 0)),
+        min_order_amount_delivery=float(getattr(config, "min_order_amount_delivery", 0)),
         banner_aspect_shape=getattr(config, "banner_aspect_shape", "rectangle"),
         banner_size=getattr(config, "banner_size", "medium"),
         category_image_size=getattr(config, "category_image_size", "medium"),

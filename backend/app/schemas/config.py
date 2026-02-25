@@ -26,6 +26,8 @@ class AppConfigResponse(BaseModel):
     delivery_city: Optional[str] = None
     delivery_cost: float = 0
     free_delivery_min_amount: float = 0
+    min_order_amount_pickup: float = 0
+    min_order_amount_delivery: float = 0
     banner_aspect_shape: str = "rectangle"
     banner_size: str = "medium"
     category_image_size: str = "medium"

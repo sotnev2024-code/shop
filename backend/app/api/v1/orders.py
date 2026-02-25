@@ -207,20 +207,34 @@ async def create_order(
             bonus_used = round(max(0, bonus_used), 0)  # только целые баллы
 
     subtotal = total_after_promo - bonus_used
+    # Check minimum order amount (by delivery type)
+    config_result = await db.execute(select(AppConfig).limit(1))
+    app_config = config_result.scalar_one_or_none()
+    if app_config:
+        min_pickup = float(getattr(app_config, "min_order_amount_pickup", 0) or 0)
+        min_delivery = float(getattr(app_config, "min_order_amount_delivery", 0) or 0)
+        if data.delivery_type == "pickup" and min_pickup > 0 and subtotal < min_pickup:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Минимальная сумма заказа при самовывозе — {min_pickup:.0f} ₽. Сейчас в корзине на {subtotal:.0f} ₽.",
+            )
+        if data.delivery_type and data.delivery_type != "pickup" and min_delivery > 0 and subtotal < min_delivery:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Минимальная сумма заказа при доставке — {min_delivery:.0f} ₽. Сейчас в корзине на {subtotal:.0f} ₽.",
+            )
+
     delivery_fee = 0.0
     if data.delivery_type and data.delivery_type != "pickup":
         if free_delivery_promo:
             delivery_fee = 0.0
-        else:
-            config_result = await db.execute(select(AppConfig).limit(1))
-            app_config = config_result.scalar_one_or_none()
-            if app_config:
-                cost = float(getattr(app_config, "delivery_cost", 0) or 0)
-                min_free = float(getattr(app_config, "free_delivery_min_amount", 0) or 0)
-                if min_free > 0 and subtotal >= min_free:
-                    delivery_fee = 0.0
-                else:
-                    delivery_fee = cost
+        elif app_config:
+            cost = float(getattr(app_config, "delivery_cost", 0) or 0)
+            min_free = float(getattr(app_config, "free_delivery_min_amount", 0) or 0)
+            if min_free > 0 and subtotal >= min_free:
+                delivery_fee = 0.0
+            else:
+                delivery_fee = cost
 
     # ── Create order ──────────────────────────────────────────────────
     order = Order(
