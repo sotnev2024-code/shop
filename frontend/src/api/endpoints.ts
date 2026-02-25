@@ -189,8 +189,25 @@ export const adminUpdateBanner = (id: number, data: {
   is_active?: boolean;
 }) => api.patch<Banner>(`/admin/banners/${id}`, data);
 export const adminDeleteBanner = (id: number) => api.delete(`/admin/banners/${id}`);
-export const adminSendMailing = (text: string) =>
-  api.post('/admin/mailing', null, { params: { text } });
+export const adminUploadMailingImage = (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return api.post<{ url: string }>('/admin/mailing/upload', formData);
+};
+
+export type MailingAudience = 'all' | 'has_orders' | 'has_cart' | 'has_favorites' | 'no_orders';
+
+export interface MailingPayload {
+  name?: string | null;
+  audience: MailingAudience;
+  text: string;
+  image_url?: string | null;
+  button_text?: string | null;
+  button_url?: string | null;
+}
+
+export const adminSendMailing = (data: MailingPayload) =>
+  api.post<{ sent: number; failed: number; total: number }>('/admin/mailing', data);
 export const adminGetSettings = () => api.get('/admin/settings');
 export const adminUpdateSettings = (data: any) =>
   api.patch('/admin/settings', data);

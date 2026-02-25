@@ -42,8 +42,10 @@ from app.schemas.product import (
 from app.schemas.order import OrderResponse, OrderListResponse, OrderStatusUpdate
 from app.schemas.promo import PromoCodeCreate, PromoCodeResponse
 from app.schemas.banner import BannerResponse, BannerCreate, BannerUpdate
+from app.schemas.mailing import MailingRequest, MailingResponse
 from app.bot.bot import get_bot, is_bot_configured
 from app.services.product_loader import get_product_loader
+from app.services.mailing_service import send_broadcast
 
 logger = logging.getLogger(__name__)
 
@@ -1208,33 +1210,55 @@ async def admin_delete_banner(
 
 # ---- Mailing ----
 
-@router.post("/mailing")
+@router.post("/mailing/upload")
+async def admin_upload_mailing_image(
+    file: UploadFile = File(...),
+    admin: User = Depends(get_admin_user),
+):
+    """Upload an image for mailing. Returns { url: "/uploads/mailing/..." }."""
+    content_type = file.content_type or ""
+    if content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type: {content_type}. Allowed: jpg, png, webp, gif.",
+        )
+    content = await file.read()
+    if len(content) > MAX_FILE_SIZE:
+        raise HTTPException(status_code=400, detail="File too large. Max 50 MB.")
+    ext = os.path.splitext(file.filename or "")[1].lower() or ".jpg"
+    mailing_dir = UPLOADS_DIR / "mailing"
+    mailing_dir.mkdir(parents=True, exist_ok=True)
+    filename = f"{uuid.uuid4().hex}{ext}"
+    file_path = mailing_dir / filename
+    with open(file_path, "wb") as f:
+        f.write(content)
+    url = f"/uploads/mailing/{filename}"
+    return {"url": url}
+
+
+@router.post("/mailing", response_model=MailingResponse)
 async def admin_send_mailing(
-    text: str,
+    data: MailingRequest,
     db: AsyncSession = Depends(get_db),
     admin: User = Depends(get_admin_user),
 ):
-    """Send a broadcast message to all users."""
+    """Send a broadcast to the selected audience (all / has_orders / has_cart / has_favorites / no_orders)."""
     if not is_bot_configured():
         raise HTTPException(status_code=400, detail="Bot not configured — mailing unavailable")
-
-    bot = get_bot()
-    if not bot:
+    if not get_bot():
         raise HTTPException(status_code=400, detail="Bot not initialized")
+    if not (data.text or "").strip():
+        raise HTTPException(status_code=400, detail="Text is required")
 
-    result = await db.execute(select(User.telegram_id))
-    user_ids = result.scalars().all()
-
-    sent = 0
-    failed = 0
-    for uid in user_ids:
-        try:
-            await bot.send_message(chat_id=uid, text=text)
-            sent += 1
-        except Exception:
-            failed += 1
-
-    return {"sent": sent, "failed": failed, "total": len(user_ids)}
+    result = await send_broadcast(
+        db=db,
+        audience=data.audience,
+        text=data.text.strip(),
+        photo_url=data.image_url or None,
+        button_text=data.button_text or None,
+        button_url=data.button_url or None,
+    )
+    return MailingResponse(**result)
 
 
 # ---- Product Sync (MoySklad / 1C) ----
