@@ -5,14 +5,16 @@ Revises: add_cat_img_size
 Create Date: 2026-02-21
 
 """
-from typing import Sequence, Union
+from __future__ import annotations
+
+from typing import Sequence, Tuple, Union
 
 from alembic import op
 import sqlalchemy as sa
 
 
 revision: str = "add_bonus_system"
-down_revision: Union[str, tuple[str, ...], None] = ("add_cat_img_size", "add_category_image_url")
+down_revision: Union[str, Tuple[str, ...], None] = ("add_cat_img_size", "add_category_image_url")
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
