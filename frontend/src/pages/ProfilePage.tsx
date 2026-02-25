@@ -16,7 +16,13 @@ import { useConfigStore } from '../store/configStore';
 export const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const config = useConfigStore((s) => s.config);
+  const fetchConfig = useConfigStore((s) => s.fetchConfig);
   const [canAddToHome, setCanAddToHome] = useState(false);
+
+  // Обновить конфиг при открытии профиля (актуальные is_admin / is_owner)
+  useEffect(() => {
+    fetchConfig();
+  }, [fetchConfig]);
 
   // Telegram user data
   const tgUser = window.Telegram?.WebApp?.initDataUnsafe?.user;

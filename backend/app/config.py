@@ -72,9 +72,18 @@ class Settings(BaseSettings):
 
     @property
     def admin_id_list(self) -> list[int]:
-        if not self.admin_ids:
+        if not self.admin_ids or not str(self.admin_ids).strip():
             return []
-        return [int(x.strip()) for x in self.admin_ids.split(",") if x.strip()]
+        result = []
+        for x in str(self.admin_ids).split(","):
+            raw = x.strip()
+            if not raw:
+                continue
+            try:
+                result.append(int(raw))
+            except ValueError:
+                continue
+        return result
 
 
 settings = Settings()

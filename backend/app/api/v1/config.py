@@ -27,10 +27,19 @@ async def get_app_config(
 
     # Admin list: .env ADMIN_IDS всегда в доступе + ID из БД (раздел «Администраторы»)
     admin_ids_raw = getattr(config, "admin_ids", None) if config else None
-    from_db = [int(x.strip()) for x in str(admin_ids_raw or "").split(",") if x.strip()]
+    from_db = []
+    for x in str(admin_ids_raw or "").split(","):
+        try:
+            from_db.append(int(x.strip()))
+        except (ValueError, AttributeError):
+            continue
     from_env = settings.admin_id_list
     _admin_list = list(dict.fromkeys(from_env + from_db))
-    is_admin = user.telegram_id in _admin_list
+    try:
+        uid = int(user.telegram_id)
+    except (TypeError, ValueError):
+        uid = None
+    is_admin = uid is not None and uid in _admin_list
     is_owner = (
         settings.dev_mode
         or (settings.owner_id != 0 and user.telegram_id == settings.owner_id)
