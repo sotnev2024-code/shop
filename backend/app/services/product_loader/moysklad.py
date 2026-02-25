@@ -220,7 +220,7 @@ class MoySkladLoader(BaseProductLoader):
     async def sync_products(self) -> int:
         from sqlalchemy import select, delete as sql_delete
         from app.db.session import async_session
-        from app.db.models.product import Product
+        from app.db.models.product import Product, product_category
         from app.db.models.product_media import ProductMedia
         from app.db.models.category import Category
 
@@ -270,7 +270,17 @@ class MoySkladLoader(BaseProductLoader):
                     existing.price = item["price"]
                     existing.stock_quantity = item["stock_quantity"]
                     existing.is_available = is_available
-                    existing.category_id = cat_id
+                    await db.execute(
+                        product_category.delete().where(
+                            product_category.c.product_id == existing.id
+                        )
+                    )
+                    if cat_id:
+                        await db.execute(
+                            product_category.insert().values(
+                                product_id=existing.id, category_id=cat_id
+                            )
+                        )
 
                     # Check if admin uploaded local media for this product
                     local_media_q = await db.execute(
@@ -310,11 +320,16 @@ class MoySkladLoader(BaseProductLoader):
                         external_id=item["external_id"],
                         stock_quantity=item["stock_quantity"],
                         is_available=is_available,
-                        category_id=cat_id,
                         image_url=image_urls[0] if image_urls else None,
                     )
                     db.add(product)
                     await db.flush()
+                    if cat_id:
+                        await db.execute(
+                            product_category.insert().values(
+                                product_id=product.id, category_id=cat_id
+                            )
+                        )
 
                     # Store resolved CDN URLs directly
                     for idx, url in enumerate(image_urls):

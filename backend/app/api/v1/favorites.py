@@ -29,7 +29,7 @@ async def get_favorites(
         select(Favorite)
         .where(Favorite.user_id == user.id)
         .options(
-            selectinload(Favorite.product).selectinload(Product.category),
+            selectinload(Favorite.product).selectinload(Product.categories),
             selectinload(Favorite.product).selectinload(Product.media),
             selectinload(Favorite.product).selectinload(Product.variants).selectinload(ProductVariant.modification_type),
         )
@@ -40,6 +40,8 @@ async def get_favorites(
     for fav in favorites:
         p = fav.product
         mod_type, variants_short = _build_variant_data(p)
+        cats = getattr(p, "categories", None) or []
+        first_cat = cats[0] if cats else None
         items.append(ProductResponse.model_validate({
             "id": p.id,
             "name": p.name,
@@ -49,10 +51,12 @@ async def get_favorites(
             "image_url": p.image_url,
             "is_available": p.is_available,
             "stock_quantity": p.stock_quantity,
-            "category_id": p.category_id,
+            "category_ids": [c.id for c in cats],
             "external_id": getattr(p, "external_id", None),
             "created_at": p.created_at,
-            "category": _category_to_response_dict(p.category) if p.category else None,
+            "category_id": first_cat.id if first_cat else None,
+            "category": _category_to_response_dict(first_cat) if first_cat else None,
+            "categories": [_category_to_response_dict(c) for c in cats],
             "is_favorite": True,
             "media": _build_media_list(p),
             "modification_type": mod_type,

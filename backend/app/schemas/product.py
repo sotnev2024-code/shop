@@ -67,7 +67,7 @@ class ProductBase(BaseModel):
     image_url: Optional[str] = None
     is_available: bool = True
     stock_quantity: int = 0
-    category_id: Optional[int] = None
+    category_ids: List[int] = []
     external_id: Optional[str] = None
 
 
@@ -83,13 +83,15 @@ class ProductUpdate(BaseModel):
     image_url: Optional[str] = None
     is_available: Optional[bool] = None
     stock_quantity: Optional[int] = None
-    category_id: Optional[int] = None
+    category_ids: Optional[List[int]] = None
 
 
 class ProductResponse(ProductBase):
     id: int
     created_at: datetime
-    category: Optional[CategoryResponse] = None
+    category_id: Optional[int] = None  # first category for backward compat
+    category: Optional[CategoryResponse] = None  # first category for backward compat
+    categories: List[CategoryResponse] = []
     is_favorite: bool = False
     media: List[ProductMediaResponse] = []
     modification_type: Optional[ModificationTypeShort] = None

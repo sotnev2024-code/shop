@@ -24,7 +24,7 @@ async def create_tables():
 async def seed_data():
     """Insert sample data for testing."""
     from app.db.models.category import Category
-    from app.db.models.product import Product
+    from app.db.models.product import Product, product_category
     from app.db.models.app_config import AppConfig
 
     async with async_session() as db:
@@ -60,38 +60,42 @@ async def seed_data():
             db.add(cat)
         await db.flush()
 
-        # Products
-        products = [
-            # Electronics
-            Product(name="Беспроводные наушники", description="Bluetooth наушники с шумоподавлением. Время работы до 30 часов.", price=4990, old_price=6990, category_id=categories[0].id, stock_quantity=50, image_url="https://picsum.photos/seed/headphones/400/400"),
-            Product(name="Портативная колонка", description="Водонепроницаемая колонка с мощным басом. IPX7.", price=3490, category_id=categories[0].id, stock_quantity=30, image_url="https://picsum.photos/seed/speaker/400/400"),
-            Product(name="Умные часы", description="Фитнес-трекер с GPS, пульсометром и SpO2.", price=8990, old_price=11990, category_id=categories[0].id, stock_quantity=20, image_url="https://picsum.photos/seed/smartwatch/400/400"),
-            Product(name="Powerbank 20000 mAh", description="Быстрая зарядка USB-C PD 65W. Зарядит ноутбук.", price=2990, category_id=categories[0].id, stock_quantity=100, image_url="https://picsum.photos/seed/powerbank/400/400"),
-            Product(name="Веб-камера 4K", description="Автофокус, микрофон, HDR. Идеальна для звонков.", price=5490, category_id=categories[0].id, stock_quantity=15, image_url="https://picsum.photos/seed/webcam/400/400"),
-
-            # Clothing
-            Product(name="Худи Oversize", description="Мягкое худи из плотного хлопка. Унисекс.", price=3990, category_id=categories[1].id, stock_quantity=40, image_url="https://picsum.photos/seed/hoodie/400/400"),
-            Product(name="Кроссовки спортивные", description="Лёгкие беговые кроссовки с амортизацией.", price=6990, old_price=8990, category_id=categories[1].id, stock_quantity=25, image_url="https://picsum.photos/seed/sneakers/400/400"),
-            Product(name="Футболка базовая", description="100% хлопок, плотность 180 г/м2.", price=1490, category_id=categories[1].id, stock_quantity=200, image_url="https://picsum.photos/seed/tshirt/400/400"),
-            Product(name="Джинсы Slim Fit", description="Классические джинсы из эластичного денима.", price=4490, category_id=categories[1].id, stock_quantity=35, image_url="https://picsum.photos/seed/jeans/400/400"),
-
-            # Home & Garden
-            Product(name="Настольная лампа LED", description="Регулируемая яркость, 3 режима света. USB зарядка.", price=2490, category_id=categories[2].id, stock_quantity=60, image_url="https://picsum.photos/seed/lamp/400/400"),
-            Product(name="Набор кухонных ножей", description="6 ножей из нержавеющей стали + подставка.", price=3990, old_price=5490, category_id=categories[2].id, stock_quantity=20, image_url="https://picsum.photos/seed/knives/400/400"),
-            Product(name="Кофемашина капсульная", description="Давление 19 бар. Совместимость с Nespresso.", price=7990, category_id=categories[2].id, stock_quantity=10, image_url="https://picsum.photos/seed/coffee/400/400"),
-
-            # Sports
-            Product(name="Коврик для йоги", description="NBR 10мм, нескользящая поверхность. Чехол в комплекте.", price=1990, category_id=categories[3].id, stock_quantity=80, image_url="https://picsum.photos/seed/yogamat/400/400"),
-            Product(name="Гантели разборные 20кг", description="Набор из 2 гантелей с регулируемым весом.", price=5990, category_id=categories[3].id, stock_quantity=15, image_url="https://picsum.photos/seed/dumbbells/400/400"),
-            Product(name="Фитнес-браслет", description="Шагомер, пульс, калории, сон. До 14 дней без зарядки.", price=1990, old_price=2990, category_id=categories[3].id, stock_quantity=50, image_url="https://picsum.photos/seed/fitband/400/400"),
-
-            # Books
-            Product(name="Чистый код (Р. Мартин)", description="Классика программирования. Как писать хороший код.", price=890, category_id=categories[4].id, stock_quantity=100, image_url="https://picsum.photos/seed/cleancode/400/400"),
-            Product(name="Думай медленно... решай быстро", description="Д. Канеман. О двух системах мышления.", price=690, category_id=categories[4].id, stock_quantity=70, image_url="https://picsum.photos/seed/thinking/400/400"),
+        # Products: (name, description, price, old_price, stock, image_url, category_index)
+        product_rows = [
+            ("Беспроводные наушники", "Bluetooth наушники с шумоподавлением. Время работы до 30 часов.", 4990, 6990, 50, "https://picsum.photos/seed/headphones/400/400", 0),
+            ("Портативная колонка", "Водонепроницаемая колонка с мощным басом. IPX7.", 3490, None, 30, "https://picsum.photos/seed/speaker/400/400", 0),
+            ("Умные часы", "Фитнес-трекер с GPS, пульсометром и SpO2.", 8990, 11990, 20, "https://picsum.photos/seed/smartwatch/400/400", 0),
+            ("Powerbank 20000 mAh", "Быстрая зарядка USB-C PD 65W. Зарядит ноутбук.", 2990, None, 100, "https://picsum.photos/seed/powerbank/400/400", 0),
+            ("Веб-камера 4K", "Автофокус, микрофон, HDR. Идеальна для звонков.", 5490, None, 15, "https://picsum.photos/seed/webcam/400/400", 0),
+            ("Худи Oversize", "Мягкое худи из плотного хлопка. Унисекс.", 3990, None, 40, "https://picsum.photos/seed/hoodie/400/400", 1),
+            ("Кроссовки спортивные", "Лёгкие беговые кроссовки с амортизацией.", 6990, 8990, 25, "https://picsum.photos/seed/sneakers/400/400", 1),
+            ("Футболка базовая", "100% хлопок, плотность 180 г/м2.", 1490, None, 200, "https://picsum.photos/seed/tshirt/400/400", 1),
+            ("Джинсы Slim Fit", "Классические джинсы из эластичного денима.", 4490, None, 35, "https://picsum.photos/seed/jeans/400/400", 1),
+            ("Настольная лампа LED", "Регулируемая яркость, 3 режима света. USB зарядка.", 2490, None, 60, "https://picsum.photos/seed/lamp/400/400", 2),
+            ("Набор кухонных ножей", "6 ножей из нержавеющей стали + подставка.", 3990, 5490, 20, "https://picsum.photos/seed/knives/400/400", 2),
+            ("Кофемашина капсульная", "Давление 19 бар. Совместимость с Nespresso.", 7990, None, 10, "https://picsum.photos/seed/coffee/400/400", 2),
+            ("Коврик для йоги", "NBR 10мм, нескользящая поверхность. Чехол в комплекте.", 1990, None, 80, "https://picsum.photos/seed/yogamat/400/400", 3),
+            ("Гантели разборные 20кг", "Набор из 2 гантелей с регулируемым весом.", 5990, None, 15, "https://picsum.photos/seed/dumbbells/400/400", 3),
+            ("Фитнес-браслет", "Шагомер, пульс, калории, сон. До 14 дней без зарядки.", 1990, 2990, 50, "https://picsum.photos/seed/fitband/400/400", 3),
+            ("Чистый код (Р. Мартин)", "Классика программирования. Как писать хороший код.", 890, None, 100, "https://picsum.photos/seed/cleancode/400/400", 4),
+            ("Думай медленно... решай быстро", "Д. Канеман. О двух системах мышления.", 690, None, 70, "https://picsum.photos/seed/thinking/400/400", 4),
         ]
-
-        for product in products:
+        for name, desc, price, old_price, stock, img, cat_idx in product_rows:
+            product = Product(
+                name=name,
+                description=desc,
+                price=price,
+                old_price=old_price,
+                stock_quantity=stock,
+                image_url=img,
+            )
             db.add(product)
+            await db.flush()
+            await db.execute(
+                product_category.insert().values(
+                    product_id=product.id, category_id=categories[cat_idx].id
+                )
+            )
 
         # Promo codes
         from app.db.models.promo import PromoCode
@@ -103,7 +107,7 @@ async def seed_data():
             db.add(promo)
 
         await db.commit()
-        print(f"Seeded {len(products)} products, {len(categories)} categories, {len(promos)} promo codes!")
+        print(f"Seeded {len(product_rows)} products, {len(categories)} categories, {len(promos)} promo codes!")
 
 
 async def main():

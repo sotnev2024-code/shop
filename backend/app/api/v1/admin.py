@@ -19,7 +19,7 @@ from app.config import settings, ProductSource
 from app.db.session import get_db
 from app.db.models.user import User
 from app.db.models.order import Order, OrderItem
-from app.db.models.product import Product
+from app.db.models.product import Product, product_category
 from app.db.models.product_media import ProductMedia
 from app.db.models.product_variant import ProductVariant
 from app.db.models.modification_type import ModificationType
@@ -245,7 +245,10 @@ async def admin_list_products(
         category_ids_cte = category_ids_cte.union_all(
             select(Category.id).where(Category.parent_id == category_ids_cte.c.id)
         )
-        query = query.where(Product.category_id.in_(select(category_ids_cte.c.id)))
+        product_ids_in_cat = select(product_category.c.product_id).where(
+            product_category.c.category_id.in_(select(category_ids_cte.c.id))
+        )
+        query = query.where(Product.id.in_(product_ids_in_cat))
     if price_equals is not None:
         query = query.where(Product.price == price_equals)
     if price_min is not None:
@@ -258,7 +261,7 @@ async def admin_list_products(
 
     query = (
         query.options(
-            selectinload(Product.category),
+            selectinload(Product.categories),
             selectinload(Product.media),
             selectinload(Product.variants).selectinload(ProductVariant.modification_type),
         )
@@ -308,7 +311,10 @@ async def admin_bulk_price(
         category_ids_cte = category_ids_cte.union_all(
             select(Category.id).where(Category.parent_id == category_ids_cte.c.id)
         )
-        query = query.where(Product.category_id.in_(select(category_ids_cte.c.id)))
+        product_ids_in_cat = select(product_category.c.product_id).where(
+            product_category.c.category_id.in_(select(category_ids_cte.c.id))
+        )
+        query = query.where(Product.id.in_(product_ids_in_cat))
     # scope "all" -> no extra filters
 
     result = await db.execute(query)
@@ -366,15 +372,30 @@ def _build_product_variant_data(product: Product) -> tuple[ModificationTypeShort
     return mod_type, short_variants
 
 
+def _category_to_dict(cat) -> dict:
+    if not cat:
+        return None
+    return {
+        "id": cat.id,
+        "name": cat.name,
+        "slug": cat.slug,
+        "sort_order": cat.sort_order,
+        "is_active": cat.is_active,
+        "parent_id": getattr(cat, "parent_id", None),
+        "children": [],
+    }
+
+
 def _product_to_response_dict(product: Product, mod_type: ModificationTypeShort | None, variants_short: list[ProductVariantShort]) -> dict:
     """Build dict for ProductResponse.model_validate (avoids ORM variants/media in Pydantic)."""
     price_val = product.price
     old_price_val = getattr(product, "old_price", None)
-    # Format via string to avoid Decimal->float precision loss (e.g. 3090 becoming 3089.99...)
     def _norm_price(v):
         if v is None:
             return None
         return float(format(v, ".2f"))
+    cats = getattr(product, "categories", None) or []
+    first_cat = cats[0] if cats else None
     return {
         "id": product.id,
         "name": product.name,
@@ -384,22 +405,12 @@ def _product_to_response_dict(product: Product, mod_type: ModificationTypeShort 
         "image_url": product.image_url,
         "is_available": product.is_available,
         "stock_quantity": product.stock_quantity,
-        "category_id": product.category_id,
+        "category_ids": [c.id for c in cats],
         "external_id": getattr(product, "external_id", None),
         "created_at": product.created_at,
-        "category": (
-            {
-                "id": product.category.id,
-                "name": product.category.name,
-                "slug": product.category.slug,
-                "sort_order": product.category.sort_order,
-                "is_active": product.category.is_active,
-                "parent_id": getattr(product.category, "parent_id", None),
-                "children": [],
-            }
-            if product.category
-            else None
-        ),
+        "category_id": first_cat.id if first_cat else None,
+        "category": _category_to_dict(first_cat),
+        "categories": [_category_to_dict(c) for c in cats],
         "is_favorite": False,
         "media": _build_product_media_list(product),
         "modification_type": mod_type,
@@ -415,18 +426,23 @@ async def admin_create_product(
 ):
     """Create a new product."""
     dump = data.model_dump()
+    category_ids = dump.pop("category_ids", None) or []
     dump["price"] = Decimal(format(round(float(dump["price"]), 2), ".2f"))
     if dump.get("old_price") is not None:
         dump["old_price"] = Decimal(format(round(float(dump["old_price"]), 2), ".2f"))
     product = Product(**dump)
     db.add(product)
+    await db.flush()
+    for cid in category_ids:
+        if cid:
+            await db.execute(product_category.insert().values(product_id=product.id, category_id=cid))
     await db.commit()
 
     result = await db.execute(
         select(Product)
         .where(Product.id == product.id)
         .options(
-            selectinload(Product.category),
+            selectinload(Product.categories),
             selectinload(Product.media),
             selectinload(Product.variants).selectinload(ProductVariant.modification_type),
         )
@@ -449,7 +465,7 @@ async def admin_update_product(
         raise HTTPException(status_code=404, detail="Product not found")
 
     update_data = data.model_dump(exclude_unset=True)
-    # Normalize price via string to avoid float precision issues (e.g. 3090 sent as 3089.999...)
+    category_ids = update_data.pop("category_ids", None)
     if "price" in update_data and update_data["price"] is not None:
         p = float(update_data["price"])
         update_data["price"] = Decimal(format(round(p, 2), ".2f"))
@@ -459,13 +475,19 @@ async def admin_update_product(
     for key, value in update_data.items():
         setattr(product, key, value)
 
+    if category_ids is not None:
+        await db.execute(product_category.delete().where(product_category.c.product_id == product_id))
+        for cid in category_ids:
+            if cid:
+                await db.execute(product_category.insert().values(product_id=product_id, category_id=cid))
+
     await db.commit()
 
     result = await db.execute(
         select(Product)
         .where(Product.id == product_id)
         .options(
-            selectinload(Product.category),
+            selectinload(Product.categories),
             selectinload(Product.media),
             selectinload(Product.variants).selectinload(ProductVariant.modification_type),
         )

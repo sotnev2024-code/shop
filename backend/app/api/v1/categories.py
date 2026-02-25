@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db
 from app.db.models.category import Category
-from app.db.models.product import Product
+from app.db.models.product import Product, product_category
 from app.db.models.product_variant import ProductVariant
 from app.schemas.product import CategoryResponse
 
@@ -16,7 +16,7 @@ router = APIRouter()
 
 
 def _category_has_stock():
-    """Category has at least one product that is in stock (by product.stock or by variant)."""
+    """Category has at least one product linked via product_categories that is in stock."""
     has_variant_stock = (
         select(ProductVariant.id)
         .where(
@@ -29,7 +29,8 @@ def _category_has_stock():
     return (
         select(Product.id)
         .where(
-            Product.category_id == Category.id,
+            product_category.c.category_id == Category.id,
+            product_category.c.product_id == Product.id,
             Product.is_available == True,
             or_(Product.stock_quantity > 0, has_variant_stock),
         )

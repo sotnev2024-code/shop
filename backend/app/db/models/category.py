@@ -27,7 +27,11 @@ class Category(Base):
     children: Mapped[List["Category"]] = relationship(
         back_populates="parent", order_by="Category.sort_order"
     )
-    products: Mapped[List["Product"]] = relationship(back_populates="category")
+    products: Mapped[List["Product"]] = relationship(
+        "Product",
+        secondary="product_categories",
+        back_populates="categories",
+    )
 
 
 

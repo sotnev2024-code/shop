@@ -85,9 +85,11 @@ export interface Product {
   is_available: boolean;
   stock_quantity: number;
   category_id: number | null;
+  category_ids: number[];
   external_id: string | null;
   created_at: string;
   category: Category | null;
+  categories: Category[];
   is_favorite: boolean;
   media: ProductMedia[];
   modification_type?: { id: number; name: string } | null;

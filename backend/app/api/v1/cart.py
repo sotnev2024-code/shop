@@ -40,6 +40,8 @@ def _category_to_response(category) -> dict:
 def _product_to_response_dict(product: Product) -> dict:
     """Build dict for ProductResponse inside CartItemResponse (no ORM variants)."""
     mod_type, variants_short = _build_variant_data(product)
+    cats = getattr(product, "categories", None) or []
+    first_cat = cats[0] if cats else None
     return {
         "id": product.id,
         "name": product.name,
@@ -49,10 +51,12 @@ def _product_to_response_dict(product: Product) -> dict:
         "image_url": product.image_url,
         "is_available": product.is_available,
         "stock_quantity": product.stock_quantity,
-        "category_id": product.category_id,
+        "category_ids": [c.id for c in cats],
         "external_id": getattr(product, "external_id", None),
         "created_at": product.created_at,
-        "category": _category_to_response(product.category) if product.category else None,
+        "category_id": first_cat.id if first_cat else None,
+        "category": _category_to_response(first_cat) if first_cat else None,
+        "categories": [_category_to_response(c) for c in cats],
         "is_favorite": False,
         "media": _build_media_list(product),
         "modification_type": mod_type,
@@ -86,7 +90,7 @@ async def get_cart(
         select(CartItem)
         .where(CartItem.user_id == user.id)
         .options(
-            selectinload(CartItem.product).selectinload(Product.category),
+            selectinload(CartItem.product).selectinload(Product.categories),
             selectinload(CartItem.product).selectinload(Product.media),
             selectinload(CartItem.product).selectinload(Product.variants).selectinload(ProductVariant.modification_type),
             selectinload(CartItem.modification_type),
@@ -177,7 +181,7 @@ async def add_to_cart(
         select(CartItem)
         .where(CartItem.id == cart_item.id)
         .options(
-            selectinload(CartItem.product).selectinload(Product.category),
+            selectinload(CartItem.product).selectinload(Product.categories),
             selectinload(CartItem.product).selectinload(Product.media),
             selectinload(CartItem.product).selectinload(Product.variants).selectinload(ProductVariant.modification_type),
             selectinload(CartItem.modification_type),
@@ -199,7 +203,7 @@ async def update_cart_item(
         select(CartItem)
         .where(CartItem.id == item_id, CartItem.user_id == user.id)
         .options(
-            selectinload(CartItem.product).selectinload(Product.category),
+            selectinload(CartItem.product).selectinload(Product.categories),
             selectinload(CartItem.product).selectinload(Product.media),
             selectinload(CartItem.product).selectinload(Product.variants).selectinload(ProductVariant.modification_type),
             selectinload(CartItem.modification_type),
@@ -242,7 +246,7 @@ async def update_cart_item(
         select(CartItem)
         .where(CartItem.id == cart_item.id)
         .options(
-            selectinload(CartItem.product).selectinload(Product.category),
+            selectinload(CartItem.product).selectinload(Product.categories),
             selectinload(CartItem.product).selectinload(Product.media),
             selectinload(CartItem.product).selectinload(Product.variants).selectinload(ProductVariant.modification_type),
             selectinload(CartItem.modification_type),
@@ -294,7 +298,7 @@ async def validate_cart(
         select(CartItem)
         .where(CartItem.user_id == user.id)
         .options(
-            selectinload(CartItem.product).selectinload(Product.category),
+            selectinload(CartItem.product).selectinload(Product.categories),
             selectinload(CartItem.product).selectinload(Product.media),
             selectinload(CartItem.product).selectinload(Product.variants).selectinload(ProductVariant.modification_type),
             selectinload(CartItem.modification_type),
@@ -353,7 +357,7 @@ async def validate_cart(
         select(CartItem)
         .where(CartItem.user_id == user.id)
         .options(
-            selectinload(CartItem.product).selectinload(Product.category),
+            selectinload(CartItem.product).selectinload(Product.categories),
             selectinload(CartItem.product).selectinload(Product.media),
             selectinload(CartItem.product).selectinload(Product.variants).selectinload(ProductVariant.modification_type),
             selectinload(CartItem.modification_type),

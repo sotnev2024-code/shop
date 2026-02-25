@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.db.session import get_db
-from app.db.models.product import Product
+from app.db.models.product import Product, product_category
 from app.db.models.product_media import ProductMedia
 from app.db.models.product_variant import ProductVariant
 from app.db.models.category import Category
@@ -147,7 +147,7 @@ async def get_products(
         or_(Product.stock_quantity > 0, has_variant_stock),
     )
 
-    # Filters: category_id and all its descendants (subcategories)
+    # Filters: category_id and all its descendants (subcategories); product can be in any of these
     if category_id is not None:
         category_ids_cte = (
             select(Category.id).where(Category.id == category_id).cte(recursive=True)
@@ -155,7 +155,10 @@ async def get_products(
         category_ids_cte = category_ids_cte.union_all(
             select(Category.id).where(Category.parent_id == category_ids_cte.c.id)
         )
-        query = query.where(Product.category_id.in_(select(category_ids_cte.c.id)))
+        product_ids_in_cat = select(product_category.c.product_id).where(
+            product_category.c.category_id.in_(select(category_ids_cte.c.id))
+        )
+        query = query.where(Product.id.in_(product_ids_in_cat))
     if search:
         query = query.where(_build_search_filters(search))
     if min_price is not None:
@@ -178,7 +181,7 @@ async def get_products(
     offset = (page - 1) * per_page
     query = query.offset(offset).limit(per_page)
     query = query.options(
-        selectinload(Product.category),
+        selectinload(Product.categories),
         selectinload(Product.media),
         selectinload(Product.variants).selectinload(ProductVariant.modification_type),
     )
@@ -202,6 +205,8 @@ async def get_products(
     items = []
     for p in products:
         mod_type, variants_short = _build_variant_data(p)
+        cats = getattr(p, "categories", None) or []
+        first_cat = cats[0] if cats else None
         resp = ProductResponse.model_validate({
             "id": p.id,
             "name": p.name,
@@ -211,10 +216,12 @@ async def get_products(
             "image_url": p.image_url,
             "is_available": p.is_available,
             "stock_quantity": p.stock_quantity,
-            "category_id": p.category_id,
+            "category_ids": [c.id for c in cats],
             "external_id": getattr(p, "external_id", None),
             "created_at": p.created_at,
-            "category": _category_to_response_dict(p.category),
+            "category_id": first_cat.id if first_cat else None,
+            "category": _category_to_response_dict(first_cat),
+            "categories": [_category_to_response_dict(c) for c in cats],
             "is_favorite": p.id in fav_ids,
             "media": _build_media_list(p),
             "modification_type": mod_type,
@@ -241,7 +248,7 @@ async def get_product(
         select(Product)
         .where(Product.id == product_id)
         .options(
-            selectinload(Product.category),
+            selectinload(Product.categories),
             selectinload(Product.media),
             selectinload(Product.variants).selectinload(ProductVariant.modification_type),
         )
@@ -260,6 +267,8 @@ async def get_product(
     is_fav = fav_result.scalar_one_or_none() is not None
 
     mod_type, variants_short = _build_variant_data(product)
+    cats = getattr(product, "categories", None) or []
+    first_cat = cats[0] if cats else None
     return ProductResponse.model_validate({
         "id": product.id,
         "name": product.name,
@@ -269,10 +278,12 @@ async def get_product(
         "image_url": product.image_url,
         "is_available": product.is_available,
         "stock_quantity": product.stock_quantity,
-        "category_id": product.category_id,
+        "category_ids": [c.id for c in cats],
         "external_id": getattr(product, "external_id", None),
         "created_at": product.created_at,
-        "category": _category_to_response_dict(product.category),
+        "category_id": first_cat.id if first_cat else None,
+        "category": _category_to_response_dict(first_cat),
+        "categories": [_category_to_response_dict(c) for c in cats],
         "is_favorite": is_fav,
         "media": _build_media_list(product),
         "modification_type": mod_type,

@@ -58,7 +58,7 @@ async def _send_product_message(message: types.Message, product_id: int, webapp_
                 select(Product)
                 .where(Product.id == product_id)
                 .options(
-                    selectinload(Product.category),
+                    selectinload(Product.categories),
                     selectinload(Product.media),
                 )
             )
@@ -70,8 +70,9 @@ async def _send_product_message(message: types.Message, product_id: int, webapp_
 
         # Build text
         text_parts = [f"<b>{product.name}</b>"]
-        if product.category:
-            text_parts.append(f"📂 {product.category.name}")
+        if product.categories:
+            cat_names = ", ".join(c.name for c in product.categories)
+            text_parts.append(f"📂 {cat_names}")
         text_parts.append(f"💰 <b>{product.price:,.0f} ₽</b>")
         if product.old_price:
             text_parts.append(f"<s>{product.old_price:,.0f} ₽</s>")

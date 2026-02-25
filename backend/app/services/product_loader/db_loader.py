@@ -4,6 +4,7 @@ from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.db.models.product import Product
 from app.services.product_loader.base import BaseProductLoader
@@ -17,7 +18,9 @@ class DatabaseLoader(BaseProductLoader):
 
     async def load_products(self) -> list[dict[str, Any]]:
         result = await self.db.execute(
-            select(Product).where(Product.is_available == True)
+            select(Product)
+            .where(Product.is_available == True)
+            .options(selectinload(Product.categories))
         )
         products = result.scalars().all()
         return [
@@ -28,7 +31,7 @@ class DatabaseLoader(BaseProductLoader):
                 "description": p.description,
                 "image_url": p.image_url,
                 "stock_quantity": p.stock_quantity,
-                "category_id": p.category_id,
+                "category_ids": [c.id for c in (p.categories or [])],
             }
             for p in products
         ]

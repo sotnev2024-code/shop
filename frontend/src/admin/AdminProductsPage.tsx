@@ -26,7 +26,7 @@ export const AdminProductsPage: React.FC = () => {
   const [price, setPrice] = useState('');
   const [oldPrice, setOldPrice] = useState('');
   const [imageUrl, setImageUrl] = useState('');
-  const [categoryId, setCategoryId] = useState('');
+  const [categoryIds, setCategoryIds] = useState<number[]>([]);
   const [stock, setStock] = useState('0');
 
   // Media state — existing (from server) + pending (local files for new products)
@@ -59,7 +59,7 @@ export const AdminProductsPage: React.FC = () => {
     setPrice('');
     setOldPrice('');
     setImageUrl('');
-    setCategoryId('');
+    setCategoryIds([]);
     setStock('0');
     setEditId(null);
     setMediaItems([]);
@@ -77,7 +77,7 @@ export const AdminProductsPage: React.FC = () => {
     setPrice(Number(product.price).toFixed(2));
     setOldPrice(product.old_price != null ? Number(product.old_price).toFixed(2) : '');
     setImageUrl(product.image_url || '');
-    setCategoryId(product.category_id ? String(product.category_id) : '');
+    setCategoryIds(product.category_ids?.length ? product.category_ids : (product.category_id != null ? [product.category_id] : []));
     setStock(String(product.stock_quantity));
     setMediaItems(product.media || []);
     setPendingFiles([]);
@@ -125,7 +125,7 @@ export const AdminProductsPage: React.FC = () => {
       price: Number.isNaN(priceNum) ? 0 : roundPrice(priceNum),
       old_price: oldPriceNum != null && !Number.isNaN(oldPriceNum) ? roundPrice(oldPriceNum) : null,
       image_url: imageUrl || null,
-      category_id: categoryId ? parseInt(categoryId) : null,
+      category_ids: categoryIds,
       stock_quantity: variantModTypeId ? totalVariantQty! : parseInt(stock),
       is_available: true,
     };
@@ -290,17 +290,33 @@ export const AdminProductsPage: React.FC = () => {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-tg-hint mb-1">Категория</label>
-              <select
-                value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl bg-tg-bg text-tg-text border-none outline-none"
-              >
-                <option value="">Без категории</option>
-                {categories.filter((c) => c.slug !== 'all').map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+              <label className="block text-sm font-medium text-tg-hint mb-1">Категории (можно несколько)</label>
+              <div className="max-h-32 overflow-y-auto rounded-xl bg-tg-bg p-2 space-y-1">
+                {(() => {
+                  const flat: { id: number; name: string; depth: number }[] = [];
+                  const walk = (list: Category[], depth = 0) => {
+                    list.filter((c) => c.slug !== 'all').forEach((c) => {
+                      flat.push({ id: c.id, name: c.name, depth });
+                      if (c.children?.length) walk(c.children, depth + 1);
+                    });
+                  };
+                  walk(categories);
+                  return flat.map((c) => (
+                    <label key={c.id} className="flex items-center gap-2 py-0.5 cursor-pointer" style={{ paddingLeft: c.depth * 12 }}>
+                      <input
+                        type="checkbox"
+                        checked={categoryIds.includes(c.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) setCategoryIds((prev) => [...prev, c.id]);
+                          else setCategoryIds((prev) => prev.filter((id) => id !== c.id));
+                        }}
+                        className="rounded border-tg-hint"
+                      />
+                      <span className="text-sm text-tg-text">{c.name}</span>
+                    </label>
+                  ));
+                })()}
+              </div>
             </div>
             {variantModTypeId ? (
               <div>
