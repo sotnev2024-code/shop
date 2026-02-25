@@ -99,41 +99,8 @@ export const AdminSettingsPage: React.FC = () => {
 
   useEffect(() => {
     adminGetSettings().then(({ data }: any) => {
-      setShopName(data.shop_name);
       setLogoUrl(data.logo_url || '');
-      setPickupEnabled(data.pickup_enabled);
-      setDeliveryEnabled(data.delivery_enabled);
-      setCurrency(data.currency);
-      setStoreAddress(data.store_address || '');
-      setDeliveryCity(data.delivery_city || '');
-      setDeliveryCost(String(data.delivery_cost ?? 0));
-      setFreeDeliveryMinAmount(String(data.free_delivery_min_amount ?? 0));
-      setMinOrderAmountPickup(String(data.min_order_amount_pickup ?? 0));
-      setMinOrderAmountDelivery(String(data.min_order_amount_delivery ?? 0));
-      setSupportLink(data.support_link ?? '');
-      setAdminIds(data.admin_ids ?? '');
-      setCurrentTelegramId(data.current_telegram_id ?? null);
-      setBannerAspectShape(data.banner_aspect_shape === 'square' ? 'square' : 'rectangle');
-      setBannerSize(
-        data.banner_size === 'small' ? 'small'
-          : data.banner_size === 'large' ? 'large'
-          : data.banner_size === 'xl' ? 'xl'
-          : 'medium'
-      );
-      setCategoryImageSize(
-        data.category_image_size === 'small' ? 'small'
-          : data.category_image_size === 'large' ? 'large'
-          : data.category_image_size === 'xlarge' ? 'xlarge'
-          : 'medium'
-      );
-      setBonusEnabled(!!data.bonus_enabled);
-      setBonusWelcomeEnabled(!!data.bonus_welcome_enabled);
-      setBonusWelcomeAmount(String(data.bonus_welcome_amount ?? 0));
-      setBonusPurchaseEnabled(!!data.bonus_purchase_enabled);
-      setBonusPurchasePercent(String(data.bonus_purchase_percent ?? 0));
-      setBonusSpendEnabled(!!data.bonus_spend_enabled);
-      setBonusSpendLimitType(data.bonus_spend_limit_type === 'fixed' ? 'fixed' : 'percent');
-      setBonusSpendLimitValue(String(data.bonus_spend_limit_value ?? 0));
+      applySettingsToState(data);
     });
     fetchCategories();
     fetchModTypes();
@@ -185,35 +152,69 @@ export const AdminSettingsPage: React.FC = () => {
     });
   };
 
+  const applySettingsToState = (data: any) => {
+    setShopName(data.shop_name ?? '');
+    setPickupEnabled(!!data.pickup_enabled);
+    setDeliveryEnabled(!!data.delivery_enabled);
+    setCurrency(data.currency ?? 'RUB');
+    setStoreAddress(data.store_address ?? '');
+    setDeliveryCity(data.delivery_city ?? '');
+    setDeliveryCost(String(data.delivery_cost ?? 0));
+    setFreeDeliveryMinAmount(String(data.free_delivery_min_amount ?? 0));
+    setMinOrderAmountPickup(String(data.min_order_amount_pickup ?? 0));
+    setMinOrderAmountDelivery(String(data.min_order_amount_delivery ?? 0));
+    setSupportLink(data.support_link ?? '');
+    setAdminIds(data.admin_ids ?? '');
+    setCurrentTelegramId(data.current_telegram_id ?? null);
+    setBannerAspectShape(data.banner_aspect_shape === 'square' ? 'square' : 'rectangle');
+    setBannerSize(data.banner_size === 'small' ? 'small' : data.banner_size === 'large' ? 'large' : data.banner_size === 'xl' ? 'xl' : 'medium');
+    setCategoryImageSize(data.category_image_size === 'small' ? 'small' : data.category_image_size === 'large' ? 'large' : data.category_image_size === 'xlarge' ? 'xlarge' : 'medium');
+    setBonusEnabled(!!data.bonus_enabled);
+    setBonusWelcomeEnabled(!!data.bonus_welcome_enabled);
+    setBonusWelcomeAmount(String(data.bonus_welcome_amount ?? 0));
+    setBonusPurchaseEnabled(!!data.bonus_purchase_enabled);
+    setBonusPurchasePercent(String(data.bonus_purchase_percent ?? 0));
+    setBonusSpendEnabled(!!data.bonus_spend_enabled);
+    setBonusSpendLimitType(data.bonus_spend_limit_type === 'fixed' ? 'fixed' : 'percent');
+    setBonusSpendLimitValue(String(data.bonus_spend_limit_value ?? 0));
+  };
+
   const handleSave = async () => {
-    await adminUpdateSettings({
-      shop_name: shopName,
-      pickup_enabled: pickupEnabled,
-      delivery_enabled: deliveryEnabled,
-      currency,
-      store_address: storeAddress,
-      delivery_city: deliveryCity,
-      delivery_cost: parseFloat(deliveryCost) || 0,
-      free_delivery_min_amount: parseFloat(freeDeliveryMinAmount) || 0,
-      min_order_amount_pickup: parseFloat(minOrderAmountPickup) || 0,
-      min_order_amount_delivery: parseFloat(minOrderAmountDelivery) || 0,
-      support_link: supportLink.trim() || null,
-      admin_ids: adminIds.trim(),
-      banner_aspect_shape: bannerAspectShape,
-      banner_size: bannerSize,
-      category_image_size: categoryImageSize,
-      bonus_enabled: bonusEnabled,
-      bonus_welcome_enabled: bonusWelcomeEnabled,
-      bonus_welcome_amount: parseFloat(bonusWelcomeAmount) || 0,
-      bonus_purchase_enabled: bonusPurchaseEnabled,
-      bonus_purchase_percent: parseFloat(bonusPurchasePercent) || 0,
-      bonus_spend_enabled: bonusSpendEnabled,
-      bonus_spend_limit_type: bonusSpendLimitType,
-      bonus_spend_limit_value: parseFloat(bonusSpendLimitValue) || 0,
-    });
-    await useConfigStore.getState().fetchConfig();
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    try {
+      await adminUpdateSettings({
+        shop_name: shopName,
+        pickup_enabled: pickupEnabled,
+        delivery_enabled: deliveryEnabled,
+        currency,
+        store_address: storeAddress,
+        delivery_city: deliveryCity,
+        delivery_cost: parseFloat(deliveryCost) || 0,
+        free_delivery_min_amount: parseFloat(freeDeliveryMinAmount) || 0,
+        min_order_amount_pickup: parseFloat(minOrderAmountPickup) || 0,
+        min_order_amount_delivery: parseFloat(minOrderAmountDelivery) || 0,
+        support_link: supportLink.trim() || null,
+        admin_ids: adminIds.trim(),
+        banner_aspect_shape: bannerAspectShape,
+        banner_size: bannerSize,
+        category_image_size: categoryImageSize,
+        bonus_enabled: bonusEnabled,
+        bonus_welcome_enabled: bonusWelcomeEnabled,
+        bonus_welcome_amount: parseFloat(bonusWelcomeAmount) || 0,
+        bonus_purchase_enabled: bonusPurchaseEnabled,
+        bonus_purchase_percent: parseFloat(bonusPurchasePercent) || 0,
+        bonus_spend_enabled: bonusSpendEnabled,
+        bonus_spend_limit_type: bonusSpendLimitType,
+        bonus_spend_limit_value: parseFloat(bonusSpendLimitValue) || 0,
+      });
+      await useConfigStore.getState().fetchConfig();
+      const { data } = await adminGetSettings();
+      applySettingsToState(data);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err: any) {
+      const msg = err?.response?.data?.detail ?? err?.message ?? 'Ошибка сохранения';
+      alert(typeof msg === 'string' ? msg : JSON.stringify(msg));
+    }
   };
 
   // --- Category handlers ---

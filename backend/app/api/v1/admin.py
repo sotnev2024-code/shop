@@ -1438,7 +1438,10 @@ async def admin_update_settings(
                 new_ids.append(current_id)  # prevent lockout
             value = ",".join(str(i) for i in new_ids) if new_ids else None
         if key in ("bonus_welcome_amount", "bonus_purchase_percent", "bonus_spend_limit_value", "delivery_cost", "free_delivery_min_amount", "min_order_amount_pickup", "min_order_amount_delivery"):
-            value = float(value) if value is not None else 0
+            try:
+                value = float(value) if value not in (None, "") else 0
+            except (TypeError, ValueError):
+                value = 0
         setattr(config, key, value)
 
     await db.commit()

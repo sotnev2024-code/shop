@@ -151,10 +151,10 @@ async def get_admin_user(
     result = await db.execute(select(AppConfig).limit(1))
     config = result.scalar_one_or_none()
     admin_ids_raw = getattr(config, "admin_ids", None) if config else None
-    if admin_ids_raw and str(admin_ids_raw).strip():
-        admin_list = [int(x.strip()) for x in str(admin_ids_raw).split(",") if x.strip()]
-    else:
-        admin_list = settings.admin_id_list
+    from_db = [int(x.strip()) for x in str(admin_ids_raw or "").split(",") if x.strip()]
+    from_env = settings.admin_id_list
+    # Объединяем: админы из .env всегда в доступе, плюс те, кого добавили в панели
+    admin_list = list(dict.fromkeys(from_env + from_db))
     if user.telegram_id not in admin_list:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
