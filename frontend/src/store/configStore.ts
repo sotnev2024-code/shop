@@ -15,7 +15,8 @@ export const useConfigStore = create<ConfigState>((set) => ({
     try {
       const { data } = await getConfig();
       set({ config: data, loading: false });
-    } catch {
+    } catch (err) {
+      // 401 = нет initData или неверный — в браузере без Telegram конфиг не загрузится
       set({ loading: false });
     }
   },

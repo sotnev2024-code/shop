@@ -16,6 +16,7 @@ import { useConfigStore } from '../store/configStore';
 export const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const config = useConfigStore((s) => s.config);
+  const configLoading = useConfigStore((s) => s.loading);
   const fetchConfig = useConfigStore((s) => s.fetchConfig);
   const [canAddToHome, setCanAddToHome] = useState(false);
 
@@ -115,6 +116,11 @@ export const ProfilePage: React.FC = () => {
 
   return (
     <div className="pb-20">
+      {!config && !configLoading && (
+        <div className="px-4 py-2 text-sm text-tg-hint">
+          Откройте приложение из Telegram, чтобы загрузить настройки и получить доступ к «Мой магазин».
+        </div>
+      )}
       {/* User card */}
       <div className="px-4 pt-6 pb-4 flex items-center gap-4">
         {photoUrl ? (
@@ -138,6 +144,20 @@ export const ProfilePage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Telegram ID (чтобы добавить в ADMIN_IDS для кнопки «Мой магазин») */}
+      {config != null && config.current_telegram_id != null && (
+        <div className="px-4 pb-2">
+          <p className="text-xs text-tg-hint">
+            Ваш Telegram ID: <span className="font-mono text-tg-text">{config.current_telegram_id}</span>
+            {!config?.is_admin && (
+              <span className="block mt-1">
+                Добавьте этот ID в переменную ADMIN_IDS на сервере, чтобы появилась кнопка «Мой магазин».
+              </span>
+            )}
+          </p>
+        </div>
+      )}
 
       {/* Admin: My Shop */}
       {config?.is_admin && (

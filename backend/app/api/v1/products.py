@@ -88,20 +88,33 @@ def _normalize_search(text: str) -> str:
     return text
 
 
+def _escape_like(value: str) -> str:
+    """Escape % and _ for use in LIKE patterns."""
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 def _build_search_filters(search: str):
     """Build SQLAlchemy filters for smart search.
     Splits query into words and requires each word to match
     either name or description (case-insensitive).
+    Uses COALESCE(description, '') so NULL description does not break the OR.
     """
     normalized = _normalize_search(search)
-    words = [w for w in normalized.split() if len(w) >= 2]
+    if not normalized:
+        return True  # no filter
+    # Allow words of length 1+ so single letter/number search works
+    words = [w for w in normalized.split() if w]
 
     if not words:
-        # If all words are too short, use full query
         pattern = f"%{normalized}%"
+        escaped = _escape_like(search.strip())
+        exact_pattern = f"%{escaped}%"
+        # Match by normalized (lower) or by exact substring (helps when DB lower() doesn't handle Cyrillic)
         return or_(
             func.lower(Product.name).like(pattern),
-            func.lower(Product.description).like(pattern),
+            func.lower(func.coalesce(Product.description, "")).like(pattern),
+            Product.name.like(exact_pattern, escape="\\"),
+            func.coalesce(Product.description, "").like(exact_pattern, escape="\\"),
         )
 
     # Each word must appear in name or description
@@ -111,7 +124,7 @@ def _build_search_filters(search: str):
         word_filters.append(
             or_(
                 func.lower(Product.name).like(pattern),
-                func.lower(Product.description).like(pattern),
+                func.lower(func.coalesce(Product.description, "")).like(pattern),
             )
         )
     return and_(*word_filters)
