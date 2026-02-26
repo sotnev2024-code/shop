@@ -20,18 +20,25 @@ export const CatalogPage: React.FC = () => {
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState('desc');
   const [showFilters, setShowFilters] = useState(false);
+  const [priceMin, setPriceMin] = useState('');
+  const [priceMax, setPriceMax] = useState('');
   const [banners, setBanners] = useState<Banner[]>([]);
+  const [botPhotoError, setBotPhotoError] = useState(false);
   /** Категория, по нажатию на которую открыт ряд подкатегорий (только для корневых с детьми) */
   const [expandedCategoryId, setExpandedCategoryId] = useState<number | null>(null);
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
     try {
+      const min = priceMin.trim() ? Number(priceMin.replace(/\s/g, '')) : undefined;
+      const max = priceMax.trim() ? Number(priceMax.replace(/\s/g, '')) : undefined;
       const { data } = await getProducts({
         page,
         per_page: 20,
         category_id: selectedCategory ?? undefined,
         search: search || undefined,
+        min_price: min != null && !Number.isNaN(min) ? min : undefined,
+        max_price: max != null && !Number.isNaN(max) ? max : undefined,
         sort_by: sortBy,
         sort_order: sortOrder,
       });
@@ -41,7 +48,7 @@ export const CatalogPage: React.FC = () => {
       console.error(err);
     }
     setLoading(false);
-  }, [page, selectedCategory, search, sortBy, sortOrder]);
+  }, [page, selectedCategory, search, sortBy, sortOrder, priceMin, priceMax]);
 
   useEffect(() => {
     getCategories().then(({ data }) => setCategories(data));
@@ -50,6 +57,10 @@ export const CatalogPage: React.FC = () => {
   useEffect(() => {
     getBanners().then(({ data }) => setBanners(data));
   }, []);
+
+  useEffect(() => {
+    setBotPhotoError(false);
+  }, [config?.bot_photo_url]);
 
   // API returns tree: roots with children. First row = roots.
   const rootCategories = categories;
@@ -82,11 +93,15 @@ export const CatalogPage: React.FC = () => {
 
   useEffect(() => {
     setPage(1);
-  }, [selectedCategory, search, sortBy, sortOrder]);
+  }, [selectedCategory, search, sortBy, sortOrder, priceMin, priceMax]);
 
   useEffect(() => {
     fetchProducts();
   }, [fetchProducts]);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [page]);
 
   const handleSearch = (query: string) => {
     setSearch(query);
@@ -130,11 +145,12 @@ export const CatalogPage: React.FC = () => {
     <div className="pb-20">
       {/* Shop header — логотип и название по центру */}
       <div className="flex items-center justify-center gap-3 px-4 pt-4 pb-2">
-        {config?.bot_photo_url ? (
+        {config?.bot_photo_url && !botPhotoError ? (
           <img
             src={config.bot_photo_url}
             alt={config.shop_name}
             className="w-11 h-11 rounded-full object-cover ring-2 ring-tg-button/20 flex-shrink-0"
+            onError={() => setBotPhotoError(true)}
           />
         ) : (
           <div className="w-11 h-11 rounded-full bg-tg-button/10 flex items-center justify-center flex-shrink-0">
@@ -221,9 +237,34 @@ export const CatalogPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Sort options */}
+      {/* Sort and price filter */}
       {showFilters && (
-        <div className="px-4 pb-3 flex gap-2 flex-wrap">
+        <div className="px-4 pb-3 space-y-3">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-tg-hint">Цена:</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              placeholder="от"
+              value={priceMin}
+              onChange={(e) => setPriceMin(e.target.value)}
+              className="w-20 px-2 py-1.5 rounded-lg bg-tg-secondary text-tg-text text-sm border-0"
+              min={0}
+              step={1}
+            />
+            <span className="text-tg-hint">—</span>
+            <input
+              type="number"
+              inputMode="numeric"
+              placeholder="до"
+              value={priceMax}
+              onChange={(e) => setPriceMax(e.target.value)}
+              className="w-20 px-2 py-1.5 rounded-lg bg-tg-secondary text-tg-text text-sm border-0"
+              min={0}
+              step={1}
+            />
+          </div>
+          <div className="flex gap-2 flex-wrap">
           {[
             { label: 'Новые', sort: 'created_at', order: 'desc' },
             { label: 'Дешевле', sort: 'price', order: 'asc' },
@@ -245,6 +286,7 @@ export const CatalogPage: React.FC = () => {
               {opt.label}
             </button>
           ))}
+          </div>
         </div>
       )}
 

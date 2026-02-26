@@ -173,8 +173,8 @@ export const ProductPage: React.FC = () => {
 
   return (
     <div className="pb-24">
-      {/* Media Gallery */}
-      <div className="relative">
+      {/* Media Gallery — z-0 чтобы кнопка «назад» и прочие элементы были поверх слайдера */}
+      <div className="relative z-0">
         {mediaList.length > 1 ? (
           <Swiper
             modules={[Pagination]}

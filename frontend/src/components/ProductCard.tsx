@@ -104,10 +104,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       onClick={() => navigate(`/product/${product.id}`)}
       className="bg-tg-secondary rounded-2xl overflow-hidden cursor-pointer active:scale-[0.98] transition-all"
     >
-      {/* Media area */}
-      <div className="relative aspect-square bg-gray-100">
+      {/* Media area — z-0 чтобы кнопки/бейджи (z-10) были поверх фото */}
+      <div className="relative z-0 aspect-square bg-gray-100">
         {mediaList.length > 1 ? (
-          <div onClick={(e) => e.stopPropagation()}>
+          <div className="relative z-0" onClick={(e) => e.stopPropagation()}>
             <Swiper
               modules={[Pagination]}
               pagination={{ clickable: true }}

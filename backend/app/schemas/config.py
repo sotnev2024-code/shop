@@ -20,6 +20,7 @@ class AppConfigResponse(BaseModel):
     support_link: str = ""
     is_admin: bool = False
     is_owner: bool = False
+    current_telegram_id: Optional[int] = None  # for debugging / admin panel
     bot_photo_url: Optional[str] = None
     bot_username: Optional[str] = None
     store_address: Optional[str] = None

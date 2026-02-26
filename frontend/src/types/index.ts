@@ -13,6 +13,7 @@ export interface AppConfig {
   support_link: string;
   is_admin: boolean;
   is_owner: boolean;
+  current_telegram_id?: number | null;
   bot_photo_url: string | null;
   bot_username: string | null;
   store_address: string | null;

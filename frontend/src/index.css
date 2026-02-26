@@ -52,6 +52,16 @@ body {
   animation: bounce-once 0.4s ease-in-out;
 }
 
+/* Swiper: медиа под кнопками/бейджами (z-10) */
+.product-card-swiper,
+.product-page-swiper {
+  z-index: 0;
+}
+.product-card-swiper .swiper-wrapper,
+.product-page-swiper .swiper-wrapper {
+  z-index: 0;
+}
+
 /* Swiper pagination in product cards */
 .product-card-swiper .swiper-pagination-bullet {
   width: 5px;

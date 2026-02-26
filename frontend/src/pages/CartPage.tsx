@@ -27,7 +27,7 @@ export const CartPage: React.FC = () => {
   }
 
   return (
-    <div className="pb-28">
+    <div className="pb-48">
       {/* Header */}
       <div className="px-4 pt-4 pb-3 flex items-center justify-between">
         <h1 className="text-xl font-bold text-tg-text">

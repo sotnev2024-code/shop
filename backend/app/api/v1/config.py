@@ -45,9 +45,13 @@ async def get_app_config(
         or (settings.owner_id != 0 and user.telegram_id == settings.owner_id)
     )
 
-    # Check if bot photo is available
+    # Check if bot photo is available; use absolute URL if public_base_url is set (for Mini App)
     photo_bytes, _ = get_bot_photo_cache()
-    bot_photo_url = "/api/v1/bot-photo" if photo_bytes else None
+    if photo_bytes:
+        base = (getattr(settings, "public_base_url", None) or "").strip().rstrip("/")
+        bot_photo_url = f"{base}/api/v1/bot-photo" if base else "/api/v1/bot-photo"
+    else:
+        bot_photo_url = None
     bot_username = get_bot_username()
 
     if config is None:
@@ -67,6 +71,7 @@ async def get_app_config(
             support_link=settings.support_link,
             is_admin=is_admin,
             is_owner=is_owner,
+            current_telegram_id=user.telegram_id,
             bot_photo_url=bot_photo_url,
             bot_username=bot_username,
             store_address=None,
@@ -113,6 +118,7 @@ async def get_app_config(
         support_link=support_link or "",
         is_admin=is_admin,
         is_owner=is_owner,
+        current_telegram_id=user.telegram_id,
         bot_photo_url=bot_photo_url,
         bot_username=bot_username,
         store_address=config.store_address,
