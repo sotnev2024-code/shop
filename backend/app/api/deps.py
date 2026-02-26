@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import json
 import logging
+import os
 from urllib.parse import unquote, parse_qsl
 from typing import Optional
 
@@ -141,29 +142,39 @@ async def _apply_welcome_bonus(db: AsyncSession, user: User) -> None:
     await db.refresh(user)
 
 
+def _parse_admin_ids(s: str) -> list[int]:
+    out = []
+    for x in (s or "").replace("\n", ",").split(","):
+        raw = x.strip().strip('"\'')
+        if not raw:
+            continue
+        try:
+            out.append(int(raw))
+        except (ValueError, TypeError):
+            continue
+    return out
+
+
 async def get_admin_user(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> User:
-    """Check that user is an admin. Admin list: AppConfig.admin_ids if set, else .env ADMIN_IDS."""
+    """Check that user is an admin. Admin list: .env ADMIN_IDS + os.environ + AppConfig.admin_ids."""
     if settings.dev_mode:
         return user
     result = await db.execute(select(AppConfig).limit(1))
     config = result.scalar_one_or_none()
     admin_ids_raw = getattr(config, "admin_ids", None) if config else None
-    from_db = []
-    for x in str(admin_ids_raw or "").split(","):
-        try:
-            from_db.append(int(x.strip()))
-        except (ValueError, AttributeError):
-            continue
-    from_env = settings.admin_id_list
+    from_db = _parse_admin_ids(str(admin_ids_raw or ""))
+    from_env = list(settings.admin_id_list)
+    env_raw = os.environ.get("ADMIN_IDS") or os.environ.get("admin_ids") or ""
+    from_env = list(dict.fromkeys(from_env + _parse_admin_ids(env_raw)))
     admin_list = list(dict.fromkeys(from_env + from_db))
     try:
         uid = int(user.telegram_id)
     except (TypeError, ValueError):
         uid = None
-    if uid is None or uid not in admin_list:
+    if uid is None or (uid not in admin_list and str(uid) not in [str(x) for x in admin_list]):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required",

@@ -116,11 +116,6 @@ export const ProfilePage: React.FC = () => {
 
   return (
     <div className="pb-20">
-      {!config && !configLoading && (
-        <div className="px-4 py-2 text-sm text-tg-hint">
-          Откройте приложение из Telegram, чтобы загрузить настройки и получить доступ к «Мой магазин».
-        </div>
-      )}
       {/* User card */}
       <div className="px-4 pt-6 pb-4 flex items-center gap-4">
         {photoUrl ? (

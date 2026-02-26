@@ -1,3 +1,4 @@
+import os
 from typing import Optional
 
 from fastapi import APIRouter, Depends
@@ -25,21 +26,32 @@ async def get_app_config(
     result = await db.execute(select(AppConfig).limit(1))
     config = result.scalar_one_or_none()
 
-    # Admin list: .env ADMIN_IDS всегда в доступе + ID из БД (раздел «Администраторы»)
+    # Admin list: .env ADMIN_IDS (и из os.environ на случай если Settings не подхватил) + ID из БД
+    def _parse_admin_ids(s: str) -> list[int]:
+        out = []
+        for x in (s or "").replace("\n", ",").split(","):
+            raw = x.strip().strip('"\'')
+            if not raw:
+                continue
+            try:
+                out.append(int(raw))
+            except (ValueError, TypeError):
+                continue
+        return out
+
     admin_ids_raw = getattr(config, "admin_ids", None) if config else None
-    from_db = []
-    for x in str(admin_ids_raw or "").split(","):
-        try:
-            from_db.append(int(x.strip()))
-        except (ValueError, AttributeError):
-            continue
-    from_env = settings.admin_id_list
+    from_db = _parse_admin_ids(str(admin_ids_raw or ""))
+    from_env = list(settings.admin_id_list)
+    # Запасной вариант: прочитать ADMIN_IDS из окружения (если .env не подхватился)
+    env_raw = os.environ.get("ADMIN_IDS") or os.environ.get("admin_ids") or ""
+    from_env = list(dict.fromkeys(from_env + _parse_admin_ids(env_raw)))
     _admin_list = list(dict.fromkeys(from_env + from_db))
     try:
         uid = int(user.telegram_id)
     except (TypeError, ValueError):
         uid = None
-    is_admin = uid is not None and uid in _admin_list
+    # Сравниваем и как int, и как str (на случай если где-то строка)
+    is_admin = uid is not None and (uid in _admin_list or str(uid) in [str(x) for x in _admin_list])
     is_owner = (
         settings.dev_mode
         or (settings.owner_id != 0 and user.telegram_id == settings.owner_id)
