@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import Optional
 
@@ -15,6 +16,7 @@ from app.schemas.config import AppConfigResponse
 from app.bot.bot import is_bot_configured, get_bot_photo_cache, get_bot_username
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.get("/config", response_model=AppConfigResponse)
@@ -52,6 +54,15 @@ async def get_app_config(
         uid = None
     # Сравниваем и как int, и как str (на случай если где-то строка)
     is_admin = uid is not None and (uid in _admin_list or str(uid) in [str(x) for x in _admin_list])
+    logger.info(
+        "Config: telegram_id=%s (type=%s), admin_list=%s, from_env_count=%s, from_db_count=%s, is_admin=%s",
+        user.telegram_id,
+        type(user.telegram_id).__name__,
+        _admin_list,
+        len(from_env),
+        len(from_db),
+        is_admin,
+    )
     is_owner = (
         settings.dev_mode
         or (settings.owner_id != 0 and user.telegram_id == settings.owner_id)
