@@ -15,7 +15,9 @@ echo "[*] Проект: $PROJECT_DIR"
 echo ""
 
 echo "[1/4] git pull..."
-git pull
+# Сброс локальных изменений, чтобы pull не падал (на сервере код = только из репозитория)
+git fetch origin
+git reset --hard "origin/$(git branch --show-current)"
 
 echo "[2/4] Бэкенд: зависимости..."
 cd "$PROJECT_DIR/backend"
