@@ -1,5 +1,7 @@
 import logging
 import os
+import re
+from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Depends
@@ -17,6 +19,38 @@ from app.bot.bot import is_bot_configured, get_bot_photo_cache, get_bot_username
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+# Путь к backend/.env (независимо от текущей рабочей директории)
+_BACKEND_DIR = Path(__file__).resolve().parents[3]
+_ENV_FILE = _BACKEND_DIR / ".env"
+
+
+def _read_admin_ids_from_env_file() -> list[int]:
+    """Читаем ADMIN_IDS напрямую из backend/.env — на случай если Settings/os.environ не подхватили."""
+    ids = []
+    if not _ENV_FILE.exists():
+        return ids
+    try:
+        raw = _ENV_FILE.read_text(encoding="utf-8", errors="ignore")
+        for line in raw.splitlines():
+            line = line.strip()
+            if line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            if key.strip().upper() != "ADMIN_IDS":
+                continue
+            val = value.strip().strip("'\"").replace("\n", ",")
+            for x in re.split(r"[,;\s]+", val):
+                x = x.strip()
+                if x:
+                    try:
+                        ids.append(int(x))
+                    except ValueError:
+                        pass
+            break
+    except Exception as e:
+        logger.warning("Could not read ADMIN_IDS from %s: %s", _ENV_FILE, e)
+    return ids
 
 
 @router.get("/config", response_model=AppConfigResponse)
@@ -44,9 +78,11 @@ async def get_app_config(
     admin_ids_raw = getattr(config, "admin_ids", None) if config else None
     from_db = _parse_admin_ids(str(admin_ids_raw or ""))
     from_env = list(settings.admin_id_list)
-    # Запасной вариант: прочитать ADMIN_IDS из окружения (если .env не подхватился)
     env_raw = os.environ.get("ADMIN_IDS") or os.environ.get("admin_ids") or ""
     from_env = list(dict.fromkeys(from_env + _parse_admin_ids(env_raw)))
+    # Жёсткая подстраховка: читаем ADMIN_IDS прямо из backend/.env
+    from_env_file = _read_admin_ids_from_env_file()
+    from_env = list(dict.fromkeys(from_env + from_env_file))
     _admin_list = list(dict.fromkeys(from_env + from_db))
     try:
         uid = int(user.telegram_id)
@@ -55,12 +91,11 @@ async def get_app_config(
     # Сравниваем и как int, и как str (на случай если где-то строка)
     is_admin = uid is not None and (uid in _admin_list or str(uid) in [str(x) for x in _admin_list])
     logger.info(
-        "Config: telegram_id=%s (type=%s), admin_list=%s, from_env_count=%s, from_db_count=%s, is_admin=%s",
+        "Config: telegram_id=%s, admin_list=%s, from_env_file=%s, env_file_path=%s, is_admin=%s",
         user.telegram_id,
-        type(user.telegram_id).__name__,
         _admin_list,
-        len(from_env),
-        len(from_db),
+        from_env_file,
+        str(_ENV_FILE),
         is_admin,
     )
     is_owner = (

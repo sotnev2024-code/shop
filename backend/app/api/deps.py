@@ -5,6 +5,8 @@ import hmac
 import json
 import logging
 import os
+import re
+from pathlib import Path
 from urllib.parse import unquote, parse_qsl
 from typing import Optional
 
@@ -155,6 +157,35 @@ def _parse_admin_ids(s: str) -> list[int]:
     return out
 
 
+def _read_admin_ids_from_env_file() -> list[int]:
+    """Читаем ADMIN_IDS напрямую из backend/.env."""
+    _env_file = Path(__file__).resolve().parents[2] / ".env"
+    ids = []
+    if not _env_file.exists():
+        return ids
+    try:
+        raw = _env_file.read_text(encoding="utf-8", errors="ignore")
+        for line in raw.splitlines():
+            line = line.strip()
+            if line.startswith("#") or "=" not in line:
+                continue
+            key, _, value = line.partition("=")
+            if key.strip().upper() != "ADMIN_IDS":
+                continue
+            val = value.strip().strip("'\"").replace("\n", ",")
+            for x in re.split(r"[,;\s]+", val):
+                x = x.strip()
+                if x:
+                    try:
+                        ids.append(int(x))
+                    except ValueError:
+                        pass
+            break
+    except Exception:
+        pass
+    return ids
+
+
 async def get_admin_user(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -169,6 +200,7 @@ async def get_admin_user(
     from_env = list(settings.admin_id_list)
     env_raw = os.environ.get("ADMIN_IDS") or os.environ.get("admin_ids") or ""
     from_env = list(dict.fromkeys(from_env + _parse_admin_ids(env_raw)))
+    from_env = list(dict.fromkeys(from_env + _read_admin_ids_from_env_file()))
     admin_list = list(dict.fromkeys(from_env + from_db))
     try:
         uid = int(user.telegram_id)
