@@ -2,7 +2,7 @@ import logging
 import os
 import re
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends
 from fastapi.responses import Response
@@ -25,7 +25,7 @@ _BACKEND_DIR = Path(__file__).resolve().parents[3]
 _ENV_FILE = _BACKEND_DIR / ".env"
 
 
-def _read_admin_ids_from_env_file() -> list[int]:
+def _read_admin_ids_from_env_file() -> List[int]:
     """Читаем ADMIN_IDS напрямую из backend/.env — на случай если Settings/os.environ не подхватили."""
     ids = []
     if not _ENV_FILE.exists():
@@ -63,7 +63,7 @@ async def get_app_config(
     config = result.scalar_one_or_none()
 
     # Admin list: .env ADMIN_IDS (и из os.environ на случай если Settings не подхватил) + ID из БД
-    def _parse_admin_ids(s: str) -> list[int]:
+    def _parse_admin_ids(s: str) -> List[int]:
         out = []
         for x in (s or "").replace("\n", ",").split(","):
             raw = x.strip().strip('"\'')

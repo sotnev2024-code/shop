@@ -8,7 +8,7 @@ import os
 import re
 from pathlib import Path
 from urllib.parse import unquote, parse_qsl
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import Depends, Header, HTTPException, status
 from sqlalchemy import select
@@ -144,7 +144,7 @@ async def _apply_welcome_bonus(db: AsyncSession, user: User) -> None:
     await db.refresh(user)
 
 
-def _parse_admin_ids(s: str) -> list[int]:
+def _parse_admin_ids(s: str) -> List[int]:
     out = []
     for x in (s or "").replace("\n", ",").split(","):
         raw = x.strip().strip('"\'')
@@ -157,7 +157,7 @@ def _parse_admin_ids(s: str) -> list[int]:
     return out
 
 
-def _read_admin_ids_from_env_file() -> list[int]:
+def _read_admin_ids_from_env_file() -> List[int]:
     """Читаем ADMIN_IDS напрямую из backend/.env."""
     _env_file = Path(__file__).resolve().parents[2] / ".env"
     ids = []
