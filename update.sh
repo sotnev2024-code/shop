@@ -19,14 +19,20 @@ echo "[1/4] git pull..."
 git fetch origin
 git reset --hard "origin/$(git branch --show-current)"
 
-echo "[2/4] Бэкенд: зависимости..."
+echo "[2/5] Бэкенд: зависимости..."
 cd "$PROJECT_DIR/backend"
 source .venv/bin/activate
 pip install -q --upgrade pip
 pip install -q -r requirements.txt
 deactivate
 
-echo "[3/4] Фронт: сборка..."
+echo "[3/5] Бэкенд: миграции БД..."
+cd "$PROJECT_DIR/backend"
+source .venv/bin/activate
+alembic upgrade head
+deactivate
+
+echo "[4/5] Фронт: сборка..."
 cd "$PROJECT_DIR/frontend"
 if ! npm ci 2>/dev/null; then
   echo "    npm ci не удался, пробуем npm install..."
@@ -35,7 +41,7 @@ if ! npm ci 2>/dev/null; then
 fi
 npm run build
 
-echo "[4/4] Перезапуск бэкенда..."
+echo "[5/5] Перезапуск бэкенда..."
 systemctl restart shop-backend
 
 echo ""

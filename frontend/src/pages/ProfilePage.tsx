@@ -140,22 +140,6 @@ export const ProfilePage: React.FC = () => {
         </div>
       </div>
 
-      {/* Telegram ID и статус админа (для отладки кнопки «Мой магазин») */}
-      {config != null && config.current_telegram_id != null && (
-        <div className="px-4 pb-2">
-          <p className="text-xs text-tg-hint">
-            Ваш Telegram ID: <span className="font-mono text-tg-text">{config.current_telegram_id}</span>
-            {' · '}
-            Кнопка «Мой магазин»: <span className="font-medium text-tg-text">{config.is_admin ? 'да' : 'нет'}</span>
-            {!config?.is_admin && (
-              <span className="block mt-1">
-                Добавьте этот ID в ADMIN_IDS на сервере (в .env) и перезапустите бэкенд.
-              </span>
-            )}
-          </p>
-        </div>
-      )}
-
       {/* Admin: My Shop */}
       {config?.is_admin && (
         <div className="px-4 pb-3">
