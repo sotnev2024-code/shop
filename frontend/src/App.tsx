@@ -17,6 +17,7 @@ import { ProfileBonusesPage } from './pages/ProfileBonusesPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { HelpPage } from './pages/HelpPage';
 import { OwnerPanelPage } from './pages/OwnerPanelPage';
+import { FootballPage } from './pages/FootballPage';
 
 // Admin
 import { AdminLayout } from './admin/AdminLayout';
@@ -122,6 +123,7 @@ const App: React.FC = () => {
         <Route path="/profile/bonuses" element={<ProfileBonusesPage />} />
         <Route path="/profile/settings" element={<SettingsPage />} />
         <Route path="/profile/help" element={<HelpPage />} />
+        <Route path="/profile/football" element={<FootballPage />} />
 
         {/* Owner (super-admin) panel */}
         <Route path="/owner" element={<OwnerPanelPage />} />

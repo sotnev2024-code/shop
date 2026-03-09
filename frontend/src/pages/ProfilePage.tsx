@@ -80,18 +80,7 @@ export const ProfilePage: React.FC = () => {
   };
 
   const handleOpenFootballWebApp = () => {
-    const base = window.location.origin;
-    const url = `${base}/deepseek_html_20260309_6abba1.html`;
-    const tg = window.Telegram?.WebApp;
-    try {
-      if (tg?.openTelegramLink) {
-        tg.openTelegramLink(url);
-      } else {
-        window.open(url, '_blank');
-      }
-    } catch {
-      window.open(url, '_blank');
-    }
+    navigate('/profile/football');
   };
 
   const menuItems = [
