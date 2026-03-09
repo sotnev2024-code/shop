@@ -84,8 +84,8 @@ export const ProfilePage: React.FC = () => {
     const url = `${base}/deepseek_html_20260309_6abba1.html`;
     const tg = window.Telegram?.WebApp;
     try {
-      if (tg?.openLink) {
-        tg.openLink(url);
+      if (tg?.openTelegramLink) {
+        tg.openTelegramLink(url);
       } else {
         window.open(url, '_blank');
       }
