@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>⚽ FootPredict · Telegram WebApp</title>
+    <!-- Telegram WebApp SDK (official) -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        /* dark theme base */
+        body {
+            background-color: #0a0f1a;
+            color: #e5e9f0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* main container with bottom nav spacing */
+        .app-container {
+            max-width: 480px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 16px 12px 90px 12px;
+            flex: 1;
+        }
+
+        /* balance card & header */
+        .balance-header {
+            background: #1e2532;
+            border-radius: 24px;
+            padding: 20px 18px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
+            border: 1px solid #2e3a4a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(4px);
+        }
+
+        .balance-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #8a9bb5;
+            letter-spacing: 0.3px;
+        }
+
+        .balance-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #ffffff;
+            line-height: 1.2;
+        }
+
+        .balance-value span {
+            font-size: 16px;
+            color: #6d7f99;
+            margin-left: 4px;
+            font-weight: 500;
+        }
+
+        .reset-month {
+            background: #2b3648;
+            padding: 8px 16px;
+            border-radius: 40px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #a2bfee;
+            border: 1px solid #3e4d62;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        /* filter bar */
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 8px 4px 16px 4px;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .filter-bar::-webkit-scrollbar {
+            display: none;
+        }
+        .filter-chip {
+            background: #1b2432;
+            border: 1px solid #2e3b4c;
+            border-radius: 40px;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #b0c4de;
+            white-space: nowrap;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .filter-chip.active {
+            background: #2d8a5e;
+            border-color: #41b07c;
+            color: white;
+        }
+        .filter-chip i {
+            margin-right: 6px;
+        }
+
+        /* section titles */
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 16px 0 14px 8px;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-title i {
+            color: #5f7dbf;
+        }
+
+        /* match cards grid */
+        .matches-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            margin-bottom: 20px;
+        }
+
+        .match-card {
+            background: #151e2a;
+            border-radius: 26px;
+            padding: 18px 16px;
+            border: 1px solid #2a3442;
+            box-shadow: 0 6px 0 #0e141f;
+            transition: transform 0.1s ease;
+        }
+
+        .league-badge {
+            display: inline-block;
+            background: #1f2b39;
+            border-radius: 20px;
+            padding: 4px 14px;
+            margin-bottom: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #93b3de;
+            border: 1px solid #334152;
+        }
+
+        .teams-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            font-weight: 600;
+            font-size: 18px;
+            color: #f0f4fd;
+        }
+
+        .team {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .team-badge {
+            background: #253040;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .vs-dash {
+            color: #5f738c;
+            font-size: 14px;
+            padding: 0 6px;
+        }
+
+        /* odds row */
+        .odds-row {
+            display: flex;
+            justify-content: space-around;
+            background: #101722;
+            border-radius: 50px;
+            padding: 8px 6px;
+            margin-bottom: 18px;
+            border: 1px solid #26303f;
+        }
+
+        .odd-btn {
+            flex: 1;
+            text-align: center;
+            background: transparent;
+            border: none;
+            color: #b7c7e0;
+            font-weight: 600;
+            font-size: 16px;
+            padding: 10px 0;
+            border-radius: 40px;
+            transition: all 0.15s;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            line-height: 1.3;
+        }
+
+        .odd-btn small {
+            font-size: 13px;
+            font-weight: 400;
+            color: #6b81a0;
+        }
+
+        .odd-btn.selected {
+            background: #2f3e5a;
+            color: white;
+            box-shadow: 0 2px 0 #0f1a2b;
+        }
+        .odd-btn.selected small {
+            color: #bdd3ff;
+        }
+
+        /* bet area */
+        .bet-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .bet-input-wrapper {
+            flex: 2;
+            min-width: 110px;
+            background: #101722;
+            border-radius: 40px;
+            border: 1px solid #2b384b;
+            display: flex;
+            align-items: center;
+            padding: 4px 14px;
+        }
+
+        .bet-input-wrapper span {
+            color: #7287a5;
+            margin-right: 6px;
+            font-weight: 500;
+        }
+
+        .bet-input {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 16px;
+            font-weight: 500;
+            width: 100%;
+            outline: none;
+            padding: 10px 0;
+        }
+
+        .bet-input::placeholder {
+            color: #3d506b;
+            font-weight: 400;
+        }
+
+        .place-bet-btn {
+            background: #2d8a5e;
+            border: none;
+            color: white;
+            font-weight: 600;
+            padding: 12px 22px;
+            border-radius: 40px;
+            font-size: 15px;
+            letter-spacing: 0.4px;
+            box-shadow: 0 6px 0 #1b533a;
+            cursor: pointer;
+            transition: 0.08s linear;
+            border: 1px solid #41b07c;
+            flex: 1;
+            white-space: nowrap;
+        }
+
+        .place-bet-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #1b533a;
+        }
+
+        .place-bet-btn:disabled {
+            opacity: 0.4;
+            transform: none;
+            box-shadow: 0 6px 0 #1b533a;
+            pointer-events: none;
+        }
+
+        /* bottom navigation */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #121a26;
+            border-top: 1px solid #253141;
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 8px 20px;
+            backdrop-filter: blur(10px);
+            max-width: 480px;
+            margin: 0 auto;
+            width: 100%;
+            border-radius: 30px 30px 0 0;
+            box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.6);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: #6b85a8;
+            font-size: 12px;
+            font-weight: 500;
+            transition: color 0.2s;
+            cursor: pointer;
+            flex: 1;
+            padding: 8px 0;
+            border-radius: 40px;
+        }
+
+        .nav-item.active {
+            color: #2d8a5e;
+            background: #1e2c3a;
+        }
+
+        .nav-item i {
+            font-size: 24px;
+            filter: drop-shadow(0 2px 4px #00000050);
+        }
+
+        /* content panels */
+        .panel {
+            display: none;
+            animation: fade 0.3s;
+        }
+
+        .panel.active {
+            display: block;
+        }
+
+        @keyframes fade {
+            from { opacity: 0.5; }
+            to { opacity: 1; }
+        }
+
+        /* Profile header with avatar and user info */
+        .profile-header {
+            background: #151e2a;
+            border-radius: 28px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #2b3445;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .avatar {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(145deg, #2d8a5e, #1e5f40);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: 600;
+            color: white;
+            border: 3px solid #41b07c;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+
+        .user-info h2 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .user-info .username {
+            color: #8a9bb5;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .user-balance-small {
+            background: #1f2b39;
+            padding: 6px 14px;
+            border-radius: 40px;
+            display: inline-block;
+            font-weight: 600;
+            color: #f5c542;
+        }
+
+        /* profile stats cards */
+        .profile-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: #151e2a;
+            padding: 18px;
+            border-radius: 24px;
+            text-align: center;
+            border: 1px solid #2b3445;
+        }
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: white;
+        }
+        .stat-label {
+            color: #8a9bb5;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        /* toggle buttons for history/accruals */
+        .toggle-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0 16px;
+        }
+        .toggle-btn {
+            flex: 1;
+            background: #1b2432;
+            border: 1px solid #2e3b4c;
+            border-radius: 40px;
+            padding: 14px 0;
+            font-weight: 600;
+            color: #b0c4de;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .toggle-btn.active {
+            background: #2d8a5e;
+            border-color: #41b07c;
+            color: white;
+        }
+
+        /* history/accruals containers */
+        .history-item, .accrual-item {
+            background: #151e2a;
+            border-radius: 20px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid #263140;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .history-match {
+            font-weight: 600;
+        }
+        .history-outcome {
+            color: #8a9bb5;
+            font-size: 14px;
+        }
+        .history-amount {
+            font-weight: 700;
+            color: #f5c542;
+        }
+        .history-result.win {
+            color: #2d8a5e;
+        }
+        .history-result.loss {
+            color: #c45d5d;
+        }
+
+        .leaderboard-full {
+            background: #151e2a;
+            border-radius: 28px;
+            padding: 16px 18px;
+            border: 1px solid #2b3445;
+        }
+        .leaderboard-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #253040;
+        }
+        .leaderboard-item:last-child {
+            border-bottom: none;
+        }
+        .rank {
+            width: 36px;
+            height: 36px;
+            background: #202b3a;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #9bb3d8;
+            margin-right: 14px;
+        }
+        .player-info {
+            flex: 1;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        .player-info small {
+            display: block;
+            font-size: 12px;
+            color: #6f87a8;
+            font-weight: 400;
+        }
+        .player-score {
+            font-weight: 700;
+            font-size: 20px;
+            color: #f5c542;
+            text-shadow: 0 2px 3px #00000040;
+        }
+
+        .tg-brand {
+            background: #1d2a39;
+            border-radius: 18px;
+            padding: 8px 16px;
+            margin-bottom: 18px;
+            font-size: 13px;
+            color: #acc3e6;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid #324153;
+        }
+        .note-text {
+            font-size: 12px;
+            color: #667c9c;
+            margin-left: 10px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 30px;
+            color: #667c9c;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Telegram WebApp info -->
+        <div class="tg-brand" id="tgWebAppInfo">
+            ⚡ Telegram WebApp · <span id="tgUserSpan">connected</span>
+        </div>
+
+        <!-- Balance header (shown on all panels) -->
+        <div class="balance-header">
+            <div>
+                <div class="balance-label">💰 MONTHLY BALANCE</div>
+                <div class="balance-value" id="balanceDisplay">10,000 <span>pts</span></div>
+            </div>
+            <div class="reset-month" id="monthResetHint">🔄 reset</div>
+        </div>
+
+        <!-- Main Panel (Bets) -->
+        <div id="panelBets" class="panel active">
+            <div class="filter-bar" id="filterContainer"></div>
+            <div class="section-title"><span>⚽</span> доступные матчи</div>
+            <div class="matches-grid" id="matchesContainer"></div>
+        </div>
+
+        <!-- Leaderboard Panel -->
+        <div id="panelLeaderboard" class="panel">
+            <div class="section-title"><span>🏆</span> топ игроков</div>
+            <div class="leaderboard-full" id="leaderboardContainer"></div>
+            <div class="note-text" style="margin-top: 16px;">обновляется каждый час</div>
+        </div>
+
+        <!-- Profile Panel (обновленный) -->
+        <div id="panelProfile" class="panel">
+            <!-- шапка профиля с фото, именем, балансом -->
+            <div class="profile-header" id="profileHeader">
+                <!-- будет заполнено динамически -->
+            </div>
+            
+            <!-- статистика (всего ставок и винрейт) -->
+            <div class="profile-stats" id="profileStats"></div>
+            
+            <!-- кнопки переключения между историей и начислениями -->
+            <div class="toggle-buttons">
+                <div class="toggle-btn active" id="showHistoryBtn">📋 История ставок</div>
+                <div class="toggle-btn" id="showAccrualsBtn">💰 Начисления</div>
+            </div>
+            
+            <!-- контейнер для истории (активен по умолчанию) -->
+            <div id="betHistoryContainer"></div>
+            
+            <!-- контейнер для начислений (изначально скрыт) -->
+            <div id="accrualsContainer" style="display: none;"></div>
+        </div>
+
+        <!-- Bottom Navigation -->
+    </div>
+
+    <div class="bottom-nav">
+        <div class="nav-item active" data-panel="bets"><i>⚽</i><span>Ставки</span></div>
+        <div class="nav-item" data-panel="leaderboard"><i>🏆</i><span>Топ</span></div>
+        <div class="nav-item" data-panel="profile"><i>👤</i><span>Профиль</span></div>
+    </div>
+
+    <script>
+        (function() {
+            const tg = window.Telegram?.WebApp;
+            if (tg) {
+                tg.expand();
+                tg.disableVerticalSwipes?.();
+                tg.setHeaderColor?.(tg.themeParams?.bg_color || '#0a0f1a');
+                tg.ready();
+            }
+
+            // Базовый URL API (тот же домен, что и WebApp)
+            const API_BASE = window.location.origin || "";
+
+            // ---------- STATE ----------
+            let userBalance = 10000;
+            let initialBalance = 10000;
+
+            // Данные пользователя (из Telegram или демо)
+            const user = tg?.initDataUnsafe?.user || { 
+                first_name: 'Игрок', 
+                username: 'football_fan',
+                photo_url: null 
+            };
+            
+            // Матчи: по умолчанию демо-данные, затем заменим ответом бэкенда
+            let matches = [
+                { id: 'm1', league: '🏴󠁧󠁢󠁥󠁮󠁧󠁿 АПЛ', home: 'Arsenal', away: 'Chelsea', oddsHome: 2.10, oddsDraw: 3.40, oddsAway: 3.60, badgeH: '🔴', badgeA: '🔵' },
+                { id: 'm2', league: '🇪🇸 Ла Лига', home: 'Real Madrid', away: 'Barcelona', oddsHome: 2.05, oddsDraw: 3.55, oddsAway: 3.80, badgeH: '👑', badgeA: '🔴' },
+                { id: 'm3', league: '🇩🇪 Бундеслига', home: 'Bayern', away: 'Dortmund', oddsHome: 1.85, oddsDraw: 3.70, oddsAway: 4.10, badgeH: '🇩🇪', badgeA: '🟡' },
+                { id: 'm4', league: '🇮🇹 Серия А', home: 'Juventus', away: 'Milan', oddsHome: 2.30, oddsDraw: 3.20, oddsAway: 3.30, badgeH: '⚫', badgeA: '🔴' },
+                { id: 'm5', league: '🏴󠁧󠁢󠁥󠁮󠁧󠁿 АПЛ', home: 'Liverpool', away: 'Man City', oddsHome: 2.70, oddsDraw: 3.50, oddsAway: 2.50, badgeH: '🔴', badgeA: '🔵' },
+                { id: 'm6', league: '🇫🇷 Лига 1', home: 'PSG', away: 'Marseille', oddsHome: 1.55, oddsDraw: 4.20, oddsAway: 5.50, badgeH: '🔵', badgeA: '⚪' }
+            ];
+
+            let leagues = [...new Set(matches.map(m => m.league))];
+            let activeLeague = 'Все';
+            let selections = {};
+
+            // История и начисления
+            let betHistory = [
+                { match: 'Arsenal - Chelsea', outcome: 'Home', amount: 500, result: 'win', payout: 1050 },
+                { match: 'Bayern - Dortmund', outcome: 'Draw', amount: 300, result: 'loss', payout: 0 },
+                { match: 'Real Madrid - Barcelona', outcome: 'Away', amount: 200, result: 'pending', payout: null },
+                { match: 'Liverpool - Man City', outcome: 'Home', amount: 150, result: 'win', payout: 405 }
+            ];
+            
+            let accruals = [
+                { date: '2024-03-01', type: 'Месячный бонус', points: 10000 },
+                { date: '2024-03-05', type: 'Выигрыш (Arsenal - Chelsea)', points: 1050 },
+                { date: '2024-03-07', type: 'Кешбэк', points: 150 },
+                { date: '2024-03-10', type: 'Выигрыш (Liverpool - Man City)', points: 405 }
+            ];
+
+            const leaderboardMock = [
+                { name: 'Alex', tag: '@alexgoals', score: 18940 },
+                { name: 'Maria', tag: '@maria_f', score: 17230 },
+                { name: 'Johan', tag: '@johanc', score: 15420 },
+                { name: 'Sophie', tag: '@sopredict', score: 14980 },
+                { name: 'Marco', tag: '@marcov', score: 13750 }
+            ];
+
+            // Format helpers
+            function formatPoints(num) { return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+            function updateBalanceUI() {
+                document.getElementById('balanceDisplay').innerHTML = `${formatPoints(userBalance)} <span>pts</span>`;
+                // также обновим маленький баланс в профиле, если он виден
+                const smallBalance = document.getElementById('userSmallBalance');
+                if (smallBalance) smallBalance.innerText = `${formatPoints(userBalance)} pts`;
+            }
+
+            // --- Работа с API бэкенда (матчи и баланс) ---
+
+            async function fetchJson(url, options = {}) {
+                try {
+                    const res = await fetch(url, {
+                        credentials: 'include',
+                        ...options,
+                    });
+                    if (!res.ok) {
+                        console.warn('API error', url, res.status);
+                        return null;
+                    }
+                    return await res.json();
+                } catch (e) {
+                    console.warn('API request failed', url, e);
+                    return null;
+                }
+            }
+
+            /**
+             * Ожидаемый ответ бэкенда для баллов:
+             * GET /api/v1/football/points
+             * {
+             *   competition_points_balance: number,
+             *   current_period_start: "2026-03-01",
+             *   current_period_end: "2026-03-31"
+             * }
+             */
+            async function loadUserPoints() {
+                const data = await fetchJson(`${API_BASE}/api/v1/football/points`);
+                if (data && typeof data.competition_points_balance === 'number') {
+                    userBalance = data.competition_points_balance;
+                    initialBalance = data.competition_points_balance;
+                    updateBalanceUI();
+                    if (document.getElementById('panelProfile').classList.contains('active')) {
+                        renderFullProfile();
+                    }
+                }
+            }
+
+            /**
+             * Ожидаемый ответ бэкенда для матчей:
+             * GET /api/v1/football/matches/today
+             * {
+             *   matches: [
+             *     {
+             *       fixture_id: 123,
+             *       kickoff_at: "2026-03-10T20:45:00Z",
+             *       status: "NS",
+             *       league: { name, country, logo, flag },
+             *       home_team: { name, logo },
+             *       away_team: { name, logo },
+             *       odds: { bookmaker_name, market_name, odd_home, odd_draw, odd_away }
+             *     },
+             *     ...
+             *   ]
+             * }
+             */
+            function adaptBackendMatches(apiMatches) {
+                if (!Array.isArray(apiMatches)) return;
+                matches = apiMatches.map((m, idx) => {
+                    const leagueName = m.league?.name || 'Лига';
+                    const country = m.league?.country;
+                    const leagueLabel = leagueName;
+                    const odds = m.odds || {};
+                    return {
+                        id: String(m.fixture_id ?? idx),
+                        league: leagueLabel,
+                        home: m.home_team?.name || 'Home',
+                        away: m.away_team?.name || 'Away',
+                        oddsHome: odds.odd_home ?? 0,
+                        oddsDraw: odds.odd_draw ?? 0,
+                        oddsAway: odds.odd_away ?? 0,
+                        leagueLogo: m.league?.logo || null,
+                        badgeH: m.home_team?.logo || 'H',
+                        badgeA: m.away_team?.logo || 'A',
+                        kickoffAt: m.kickoff_at || m.date || null,
+                        status: m.status || m.status_short || null,
+                    };
+                });
+                leagues = [...new Set(matches.map(m => m.league))];
+                activeLeague = 'Все';
+                selections = {};
+                renderFilters();
+                renderMatches();
+            }
+
+            async function loadTodayMatches() {
+                const data = await fetchJson(`${API_BASE}/api/v1/football/matches/today`);
+                if (data && Array.isArray(data.matches)) {
+                    adaptBackendMatches(data.matches);
+                }
+            }
+
+            // Render profile header with avatar and user info
+            function renderProfileHeader() {
+                const headerDiv = document.getElementById('profileHeader');
+                const firstName = user.first_name || 'Игрок';
+                const username = user.username ? '@' + user.username : 'футбольный фанат';
+                const avatarLetter = firstName.charAt(0).toUpperCase();
+                
+                // Если есть фото от Telegram — показываем его, иначе букву
+                let avatarHtml;
+                if (user.photo_url) {
+                    avatarHtml = `
+                        <div class="avatar" style="overflow: hidden;">
+                            <img src="${user.photo_url}" alt="${firstName}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+                        </div>
+                    `;
+                } else {
+                    avatarHtml = `<div class="avatar">${avatarLetter}</div>`;
+                }
+                
+                headerDiv.innerHTML = `
+                    ${avatarHtml}
+                    <div class="user-info">
+                        <h2>${firstName}</h2>
+                        <div class="username">${username}</div>
+                        <div class="user-balance-small" id="userSmallBalance">${formatPoints(userBalance)} pts</div>
+                    </div>
+                `;
+            }
+
+            // Profile stats
+            function renderProfileStats() {
+                const statsDiv = document.getElementById('profileStats');
+                const totalBets = betHistory.length;
+                const wins = betHistory.filter(b => b.result === 'win').length;
+                const winRate = totalBets ? Math.round((wins/totalBets)*100) : 0;
+                statsDiv.innerHTML = `
+                    <div class="stat-card">
+                        <div class="stat-value">${totalBets}</div>
+                        <div class="stat-label">Всего ставок</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${winRate}%</div>
+                        <div class="stat-label">Винрейт</div>
+                    </div>
+                `;
+            }
+
+            // Render bet history
+            function renderBetHistory() {
+                const container = document.getElementById('betHistoryContainer');
+                if (!container) return;
+                
+                let html = '';
+                betHistory.slice(0, 10).forEach(b => {
+                    const resultClass = b.result === 'win' ? 'win' : (b.result === 'loss' ? 'loss' : '');
+                    const resultText = b.result === 'win' ? '✅' : (b.result === 'loss' ? '❌' : '⏳');
+                    const payoutText = b.payout ? `+${b.payout}` : '';
+                    
+                    html += `
+                        <div class="history-item">
+                            <div>
+                                <div class="history-match">${b.match}</div>
+                                <div class="history-outcome">${b.outcome}</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div class="history-amount">${b.amount} pts</div>
+                                <div class="history-result ${resultClass}">${resultText} ${payoutText}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                if (html === '') {
+                    html = '<div class="empty-state">История ставок пуста</div>';
+                }
+                container.innerHTML = html;
+            }
+
+            // Render accruals
+            function renderAccruals() {
+                const container = document.getElementById('accrualsContainer');
+                if (!container) return;
+                
+                let html = '';
+                accruals.slice(0, 10).forEach(a => {
+                    html += `
+                        <div class="history-item">
+                            <div>
+                                <div class="history-match">${a.date}</div>
+                                <div class="history-outcome">${a.type}</div>
+                            </div>
+                            <div class="history-amount">+${a.points} pts</div>
+                        </div>
+                    `;
+                });
+                
+                if (html === '') {
+                    html = '<div class="empty-state">Нет начислений</div>';
+                }
+                container.innerHTML = html;
+            }
+
+            // Toggle between history and accruals
+            function setupProfileToggles() {
+                const historyBtn = document.getElementById('showHistoryBtn');
+                const accrualsBtn = document.getElementById('showAccrualsBtn');
+                const historyContainer = document.getElementById('betHistoryContainer');
+                const accrualsContainer = document.getElementById('accrualsContainer');
+                
+                historyBtn.addEventListener('click', () => {
+                    historyBtn.classList.add('active');
+                    accrualsBtn.classList.remove('active');
+                    historyContainer.style.display = 'block';
+                    accrualsContainer.style.display = 'none';
+                });
+                
+                accrualsBtn.addEventListener('click', () => {
+                    accrualsBtn.classList.add('active');
+                    historyBtn.classList.remove('active');
+                    accrualsContainer.style.display = 'block';
+                    historyContainer.style.display = 'none';
+                    renderAccruals(); // обновим на всякий случай
+                });
+            }
+
+            // Full profile render
+            function renderFullProfile() {
+                renderProfileHeader();
+                renderProfileStats();
+                renderBetHistory();
+                renderAccruals();
+            }
+
+            // Filters and matches (unchanged from previous)
+            function renderFilters() {
+                const container = document.getElementById('filterContainer');
+                let html = `<div class="filter-chip ${activeLeague === 'Все' ? 'active' : ''}" data-league="Все"><i>🏆</i>Все</div>`;
+                leagues.forEach(l => {
+                    html += `<div class="filter-chip ${activeLeague === l ? 'active' : ''}" data-league="${l}">${l}</div>`;
+                });
+                container.innerHTML = html;
+                document.querySelectorAll('.filter-chip').forEach(chip => {
+                    chip.addEventListener('click', function() {
+                        activeLeague = this.dataset.league;
+                        renderFilters();
+                        renderMatches();
+                    });
+                });
+            }
+
+            function renderMatches() {
+                const container = document.getElementById('matchesContainer');
+                const filtered = activeLeague === 'Все' ? matches : matches.filter(m => m.league === activeLeague);
+                let htmlStr = '';
+                filtered.forEach(m => {
+                    const sel = selections[m.id] || { outcome: null, amount: '' };
+                    const selectedOutcome = sel.outcome;
+                    const btnHomeClass = `odd-btn ${selectedOutcome === 'H' ? 'selected' : ''}`;
+                    const btnDrawClass = `odd-btn ${selectedOutcome === 'D' ? 'selected' : ''}`;
+                    const btnAwayClass = `odd-btn ${selectedOutcome === 'A' ? 'selected' : ''}`;
+                    const betAmount = sel.amount || '';
+
+                    htmlStr += `
+                        <div class="match-card" data-match-id="${m.id}">
+                            <div class="league-badge">${m.league}</div>
+                            <div class="teams-row">
+                                <div class="team">
+                                    <span class="team-badge">${
+                                        m.badgeH && typeof m.badgeH === 'string' && m.badgeH.startsWith('http')
+                                            ? `<img src="${m.badgeH}" alt="" style="width:24px;height:24px;border-radius:50%;">`
+                                            : m.badgeH
+                                    }</span>
+                                    ${m.home}
+                                </div>
+                                <span class="vs-dash">VS</span>
+                                <div class="team">
+                                    ${m.away}
+                                    <span class="team-badge">${
+                                        m.badgeA && typeof m.badgeA === 'string' && m.badgeA.startsWith('http')
+                                            ? `<img src="${m.badgeA}" alt="" style="width:24px;height:24px;border-radius:50%;">`
+                                            : m.badgeA
+                                    }</span>
+                                </div>
+                            </div>
+                            <div class="odds-row">
+                                <button class="${btnHomeClass}" data-match="${m.id}" data-outcome="H">${m.oddsHome} <small>home</small></button>
+                                <button class="${btnDrawClass}" data-match="${m.id}" data-outcome="D">${m.oddsDraw} <small>draw</small></button>
+                                <button class="${btnAwayClass}" data-match="${m.id}" data-outcome="A">${m.oddsAway} <small>away</small></button>
+                            </div>
+                            <div class="bet-area">
+                                <div class="bet-input-wrapper">
+                                    <span>⚡</span>
+                                    <input class="bet-input" type="number" placeholder="сумма" min="1" value="${betAmount}" data-match-id="${m.id}" id="input-${m.id}">
+                                </div>
+                                <button class="place-bet-btn" data-match-id="${m.id}" id="betbtn-${m.id}">Ставка</button>
+                            </div>
+                        </div>
+                    `;
+                });
+                container.innerHTML = htmlStr || '<div style="padding: 20px; text-align:center;">Нет матчей в этой лиге</div>';
+                attachMatchEvents();
+            }
+
+            function attachMatchEvents() {
+                document.querySelectorAll('.odd-btn').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        const matchId = this.dataset.match;
+                        const outcome = this.dataset.outcome;
+                        if (!matchId || !outcome) return;
+                        if (!selections[matchId]) selections[matchId] = { outcome: null, amount: '' };
+                        selections[matchId].outcome = outcome;
+                        renderMatches();
+                    });
+                });
+
+                document.querySelectorAll('.bet-input').forEach(inp => {
+                    inp.addEventListener('input', function(e) {
+                        const matchId = this.dataset.matchId;
+                        const val = this.value;
+                        if (!selections[matchId]) selections[matchId] = { outcome: null, amount: '' };
+                        selections[matchId].amount = val;
+                    });
+                });
+
+                document.querySelectorAll('.place-bet-btn').forEach(btn => {
+                    btn.addEventListener('click', function(e) {
+                        const matchId = this.dataset.matchId;
+                        const match = matches.find(m => m.id === matchId);
+                        if (!match) return;
+                        const sel = selections[matchId] || { outcome: null, amount: '' };
+                        const outcome = sel.outcome;
+                        const amount = parseInt(sel.amount, 10);
+                        if (!outcome) { tg?.showAlert?.('❌ Выберите исход'); return; }
+                        if (!amount || amount <= 0) { tg?.showAlert?.('⚠️ Введите сумму'); return; }
+                        if (amount > userBalance) { tg?.showAlert?.(`💔 Недостаточно средств. Баланс: ${formatPoints(userBalance)} pts`); return; }
+
+                        let odds = outcome === 'H' ? match.oddsHome : (outcome === 'D' ? match.oddsDraw : match.oddsAway);
+                        userBalance -= amount;
+                        updateBalanceUI();
+
+                        const potentialWin = Math.round(amount * odds * 100) / 100;
+                        tg?.showAlert?.(`✅ Ставка принята!\nПотенциальный выигрыш: ${potentialWin} pts`);
+
+                        // Добавляем в историю
+                        betHistory.unshift({ 
+                            match: `${match.home} - ${match.away}`, 
+                            outcome: outcome === 'H' ? 'Home' : outcome === 'D' ? 'Draw' : 'Away', 
+                            amount, 
+                            result: 'pending', 
+                            payout: null 
+                        });
+                        
+                        if (selections[matchId]) selections[matchId].amount = '';
+                        renderMatches();
+                        if (document.getElementById('panelProfile').classList.contains('active')) {
+                            renderFullProfile();
+                        }
+                        tg?.HapticFeedback?.notification('success');
+                    });
+                });
+            }
+
+            function renderLeaderboard() {
+                const container = document.getElementById('leaderboardContainer');
+                let html = '';
+                leaderboardMock.forEach((p, idx) => {
+                    html += `<div class="leaderboard-item"><div class="rank">${idx+1}</div><div class="player-info">${p.name} <small>${p.tag}</small></div><div class="player-score">${formatPoints(p.score)}</div></div>`;
+                });
+                container.innerHTML = html;
+            }
+
+            // Navigation
+            function showPanel(panelId) {
+                document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+                document.getElementById(`panel${panelId}`).classList.add('active');
+                document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+                document.querySelector(`.nav-item[data-panel="${panelId.toLowerCase()}"]`).classList.add('active');
+                
+                if (panelId === 'Profile') {
+                    renderFullProfile();
+                }
+                if (panelId === 'Leaderboard') {
+                    renderLeaderboard();
+                }
+                if (panelId === 'Bets') {
+                    renderFilters();
+                    renderMatches();
+                }
+            }
+
+            // Reset monthly
+            document.getElementById('monthResetHint').addEventListener('click', ()=>{
+                userBalance = initialBalance;
+                updateBalanceUI();
+                if (document.getElementById('panelProfile').classList.contains('active')) {
+                    renderFullProfile();
+                }
+                tg?.showAlert?.('Баланс сброшен (новый месяц)');
+                tg?.HapticFeedback?.impact('light');
+            });
+
+            // Navigation listeners
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const panel = this.dataset.panel;
+                    if (panel === 'bets') showPanel('Bets');
+                    else if (panel === 'leaderboard') showPanel('Leaderboard');
+                    else if (panel === 'profile') showPanel('Profile');
+                });
+            });
+
+            // Setup profile toggles after DOM ready
+            setupProfileToggles();
+
+            // Initial render
+            renderFilters();
+            renderMatches();
+            renderLeaderboard();
+            renderFullProfile();
+            updateBalanceUI();
+
+            // Загрузка реальных данных с бэкенда (если доступны)
+            loadUserPoints();
+            loadTodayMatches();
+
+            // Set Telegram user name if available
+            if (user?.first_name) {
+                document.getElementById('tgUserSpan').innerText = user.first_name;
+            }
+        })();
+    </script>
+</body>
+</html>

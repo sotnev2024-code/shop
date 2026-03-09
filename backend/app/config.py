@@ -65,6 +65,8 @@ class Settings(BaseSettings):
     one_c_endpoint: Optional[str] = None
     one_c_login: Optional[str] = None
     one_c_password: Optional[str] = None
+    api_football: Optional[str] = None
+    url_football: Optional[str] = None
 
     # Database (SQLite for local dev, PostgreSQL for production)
     database_url: str = "sqlite+aiosqlite:///./shop.db"

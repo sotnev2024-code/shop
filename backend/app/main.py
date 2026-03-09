@@ -21,7 +21,21 @@ try:
 except ImportError:
     ServerDisconnectedError = ConnectionError
     ClientError = ConnectionError
-from app.api.v1 import products, categories, cart, favorites, orders, payments, promo, config, admin, owner, banners, user as user_router
+from app.api.v1 import (
+    products,
+    categories,
+    cart,
+    favorites,
+    orders,
+    payments,
+    promo,
+    config,
+    admin,
+    owner,
+    banners,
+    user as user_router,
+    football,
+)
 
 UPLOADS_DIR = Path(__file__).resolve().parent.parent / "uploads"
 UPLOADS_DIR.mkdir(exist_ok=True)
@@ -180,6 +194,7 @@ app.include_router(promo.router, prefix="/api/v1", tags=["promo"])
 app.include_router(banners.router, prefix="/api/v1", tags=["banners"])
 app.include_router(admin.router, prefix="/api/v1/admin", tags=["admin"])
 app.include_router(owner.router, prefix="/api/v1/owner", tags=["owner"])
+app.include_router(football.router, prefix="/api/v1", tags=["football"])
 
 
 @app.get("/health")
