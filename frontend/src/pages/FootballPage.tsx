@@ -1,8 +1,7 @@
 import React from 'react';
 
 export const FootballPage: React.FC = () => {
-  const base = window.location.origin;
-  const src = `${base}/deepseek_html_20260309_6abba1.html`;
+  const src = `/footpredict.html`;
 
   return (
     <div className="w-full h-screen bg-black">
