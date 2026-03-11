@@ -39,6 +39,7 @@ export const AdminSettingsPage: React.FC = () => {
   const [minOrderAmountPickup, setMinOrderAmountPickup] = useState('');
   const [minOrderAmountDelivery, setMinOrderAmountDelivery] = useState('');
   const [supportLink, setSupportLink] = useState('');
+  const [channelId, setChannelId] = useState('');
   const [adminIds, setAdminIds] = useState('');
   const [currentTelegramId, setCurrentTelegramId] = useState<number | null>(null);
   const [logoUrl, setLogoUrl] = useState('');
@@ -207,6 +208,7 @@ export const AdminSettingsPage: React.FC = () => {
     setMinOrderAmountPickup(String(data.min_order_amount_pickup ?? 0));
     setMinOrderAmountDelivery(String(data.min_order_amount_delivery ?? 0));
     setSupportLink(data.support_link ?? '');
+    setChannelId(data.channel_id ?? '');
     setAdminIds(data.admin_ids ?? '');
     setCurrentTelegramId(data.current_telegram_id ?? null);
     setBannerAspectShape(data.banner_aspect_shape === 'square' ? 'square' : 'rectangle');
@@ -236,6 +238,7 @@ export const AdminSettingsPage: React.FC = () => {
         min_order_amount_pickup: parseFloat(minOrderAmountPickup) || 0,
         min_order_amount_delivery: parseFloat(minOrderAmountDelivery) || 0,
         support_link: supportLink.trim() || null,
+        channel_id: channelId.trim() || null,
         admin_ids: adminIds.trim(),
         banner_aspect_shape: bannerAspectShape,
         banner_size: bannerSize,
@@ -723,6 +726,13 @@ export const AdminSettingsPage: React.FC = () => {
             onChange={(e) => setSupportLink(e.target.value)}
           />
           <p className="text-xs text-tg-hint -mt-2">При нажатии кнопки «Поддержка» в профиле откроется чат с указанным пользователем.</p>
+          <Input
+            label="ID Telegram‑канала"
+            placeholder="-1001234567890 или @channel_username"
+            value={channelId}
+            onChange={(e) => setChannelId(e.target.value)}
+          />
+          <p className="text-xs text-tg-hint -mt-2">ID канала для публикации постов (раздел «Посты»). Можно указать numeric ID вида -100... или @username. Бот должен быть админом канала.</p>
           <Button onClick={handleSave} fullWidth>{saved ? '✓ Сохранено!' : 'Сохранить'}</Button>
         </div>
       )}

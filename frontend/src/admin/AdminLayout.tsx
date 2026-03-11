@@ -1,12 +1,13 @@
 import React from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Image, LayoutDashboard, Package, ShoppingCart, Tag, Send, Settings } from 'lucide-react';
+import { ArrowLeft, Image, LayoutDashboard, Package, ShoppingCart, Tag, Send, Settings, FileText } from 'lucide-react';
 
 const adminTabs = [
   { path: '/admin', icon: LayoutDashboard, label: 'Главная' },
   { path: '/admin/orders', icon: ShoppingCart, label: 'Заказы' },
   { path: '/admin/products', icon: Package, label: 'Товары' },
   { path: '/admin/banners', icon: Image, label: 'Баннеры' },
+  { path: '/admin/posts', icon: FileText, label: 'Посты' },
   { path: '/admin/promos', icon: Tag, label: 'Промо' },
   { path: '/admin/mailing', icon: Send, label: 'Рассылка' },
   { path: '/admin/settings', icon: Settings, label: 'Настройки' },

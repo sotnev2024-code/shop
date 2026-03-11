@@ -27,6 +27,7 @@ import { AdminProductsPage } from './admin/AdminProductsPage';
 import { AdminBannersPage } from './admin/AdminBannersPage';
 import { AdminPromoPage } from './admin/AdminPromoPage';
 import { AdminMailingPage } from './admin/AdminMailingPage';
+import { AdminPostsPage } from './admin/AdminPostsPage';
 import { AdminSettingsPage } from './admin/AdminSettingsPage';
 
 // Components
@@ -135,6 +136,7 @@ const App: React.FC = () => {
           <Route path="products" element={<AdminProductsPage />} />
           <Route path="banners" element={<AdminBannersPage />} />
           <Route path="promos" element={<AdminPromoPage />} />
+          <Route path="posts" element={<AdminPostsPage />} />
           <Route path="mailing" element={<AdminMailingPage />} />
           <Route path="settings" element={<AdminSettingsPage />} />
         </Route>

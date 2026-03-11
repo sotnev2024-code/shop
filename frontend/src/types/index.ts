@@ -231,6 +231,23 @@ export interface Stats {
   products: { total: number };
 }
 
+export interface AdminPost {
+  id: number;
+  title: string | null;
+  text: string;
+  photo_url: string | null;
+  photo_file_id: string | null;
+  button_text: string | null;
+  button_url: string | null;
+  button_color: string | null;
+  product_id: number | null;
+  sent_at: string | null;
+  message_id: number | null;
+  channel_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface PromoCode {
   id: number;
   code: string;

@@ -58,6 +58,9 @@ class Settings(BaseSettings):
     # Support
     support_link: str = ""
 
+    # Channel for posts (numeric ID like -100... or @username)
+    channel_id: Optional[str] = None
+
     # Integrations
     yandex_maps_key: Optional[str] = None
     payment_provider_token: Optional[str] = None

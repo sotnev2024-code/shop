@@ -1399,6 +1399,7 @@ async def admin_get_settings(
             "store_address": None,
             "delivery_city": None,
             "support_link": None,
+            "channel_id": getattr(settings, "channel_id", None) or None,
             "admin_ids": default_admin_ids,
             "current_telegram_id": admin.telegram_id,
             "banner_aspect_shape": "rectangle",
@@ -1429,6 +1430,7 @@ async def admin_get_settings(
         "min_order_amount_pickup": float(getattr(config, "min_order_amount_pickup", 0)),
         "min_order_amount_delivery": float(getattr(config, "min_order_amount_delivery", 0)),
         "support_link": getattr(config, "support_link", None) or None,
+        "channel_id": getattr(config, "channel_id", None) or getattr(settings, "channel_id", None) or None,
         "admin_ids": (getattr(config, "admin_ids", None) or "").strip() or default_admin_ids,
         "current_telegram_id": admin.telegram_id,
         "banner_aspect_shape": getattr(config, "banner_aspect_shape", "rectangle"),
@@ -1461,7 +1463,7 @@ async def admin_update_settings(
     allowed = {
         "shop_name", "pickup_enabled", "delivery_enabled",
         "currency", "store_address", "delivery_city",
-        "support_link", "admin_ids",
+        "support_link", "channel_id", "admin_ids",
         "banner_aspect_shape", "banner_size", "category_image_size",
         "bonus_enabled", "bonus_welcome_enabled", "bonus_welcome_amount",
         "bonus_purchase_enabled", "bonus_purchase_percent",
@@ -1472,7 +1474,7 @@ async def admin_update_settings(
     for key, value in data.items():
         if key not in allowed:
             continue
-        if key in ("store_address", "delivery_city", "support_link"):
+        if key in ("store_address", "delivery_city", "support_link", "channel_id"):
             value = value.strip() if isinstance(value, str) and value.strip() else None
         if key == "admin_ids":
             # Accept string (comma-separated) or list of ints; prevent lockout: keep current admin in list
@@ -1499,3 +1501,7 @@ async def admin_update_settings(
     await db.commit()
     return {"ok": True}
 
+
+# ---- Posts (channel) ----
+from app.api.v1 import admin_posts
+router.include_router(admin_posts.router, prefix="/posts", tags=["admin-posts"])

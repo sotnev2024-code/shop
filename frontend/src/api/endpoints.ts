@@ -1,5 +1,6 @@
 import api from './client';
 import type {
+  AdminPost,
   AppConfig,
   Banner,
   BulkPriceRequest,
@@ -227,6 +228,27 @@ export const adminSendMailing = (data: MailingPayload) =>
 export const adminGetSettings = () => api.get('/admin/settings');
 export const adminUpdateSettings = (data: any) =>
   api.patch('/admin/settings', data);
+
+// Posts (channel)
+export const adminGetPosts = (params?: { skip?: number; limit?: number }) =>
+  api.get<{ items: AdminPost[]; total: number }>('/admin/posts', { params });
+export const adminCreatePost = (data: {
+  title?: string | null;
+  text?: string;
+  photo_url?: string | null;
+  photo_file_id?: string | null;
+  button_text?: string | null;
+  button_url?: string | null;
+  button_color?: string | null;
+  product_id?: number | null;
+}) => api.post<AdminPost>('/admin/posts', data);
+export const adminSendPost = (id: number) =>
+  api.post<{ ok: boolean; message_id: number; channel_id: string }>(`/admin/posts/${id}/send`);
+export const adminUploadPostImage = (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return api.post<{ url: string }>('/admin/posts/upload-image', formData);
+};
 
 // Owner (super-admin)
 export const ownerGetConfig = () => api.get<OwnerConfig>('/owner/config');

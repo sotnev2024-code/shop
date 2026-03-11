@@ -49,4 +49,5 @@ class Product(Base):
         back_populates="product",
         cascade="all, delete-orphan",
     )
+    posts: Mapped[List["Post"]] = relationship(back_populates="product")
 

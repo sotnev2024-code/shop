@@ -56,6 +56,9 @@ class AppConfig(Base):
     # --- Admins: comma-separated telegram_id; if set, overrides .env ADMIN_IDS ---
     admin_ids: Mapped[Optional[str]] = mapped_column(String(500), nullable=True, default=None)
 
+    # --- Channel for posts: numeric ID (-100...) or @username ---
+    channel_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, default=None)
+
     # --- Bonus system (admin-editable) ---
     bonus_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     bonus_welcome_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
