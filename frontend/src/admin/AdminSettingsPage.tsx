@@ -1452,7 +1452,7 @@ export const AdminSettingsPage: React.FC = () => {
           <div className="mt-4 p-3 border border-tg-secondary rounded-xl bg-tg-secondary/40 text-xs whitespace-pre-wrap">
             <div className="flex items-center justify-between mb-2">
               <span className="font-semibold">Детали ошибки #{selectedErrorLog.id}</span>
-              <Button size="xs" variant="outline" onClick={() => setSelectedErrorLog(null)}>
+              <Button size="sm" variant="secondary" onClick={() => setSelectedErrorLog(null)}>
                 Закрыть
               </Button>
             </div>
