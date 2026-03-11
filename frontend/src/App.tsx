@@ -3,6 +3,7 @@ import { Routes, Route, useLocation } from 'react-router-dom';
 import { useConfigStore } from './store/configStore';
 import { useCartStore } from './store/cartStore';
 import { useFavoritesStore } from './store/favoritesStore';
+import { usePreferencesStore } from './store/preferencesStore';
 
 // Pages
 import { CatalogPage } from './pages/CatalogPage';
@@ -44,7 +45,10 @@ const App: React.FC = () => {
   const validateFavorites = useFavoritesStore((s) => s.validateFavorites);
   const configLoading = useConfigStore((s) => s.loading);
 
+  const hydratePreferences = usePreferencesStore((s) => s.hydrate);
+
   const initApp = useCallback(async () => {
+    hydratePreferences();
     // Initialize Telegram WebApp
     const tg = window.Telegram?.WebApp;
     if (tg) {
@@ -91,7 +95,7 @@ const App: React.FC = () => {
         alert(messages.join('\n'));
       }
     }
-  }, [fetchConfig, fetchCart, validateCart, fetchFavorites, validateFavorites]);
+  }, [hydratePreferences, fetchConfig, fetchCart, validateCart, fetchFavorites, validateFavorites]);
 
   useEffect(() => {
     initApp();

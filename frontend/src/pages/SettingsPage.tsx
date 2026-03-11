@@ -2,10 +2,13 @@ import React, { useState } from 'react';
 import { Trash2, CheckCircle } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { useBackButton } from '../hooks/useBackButton';
+import { usePreferencesStore } from '../store/preferencesStore';
 
 export const SettingsPage: React.FC = () => {
   useBackButton();
   const [cleared, setCleared] = useState(false);
+  const showVideosInCatalog = usePreferencesStore((s) => s.showVideosInCatalog);
+  const setShowVideosInCatalog = usePreferencesStore((s) => s.setShowVideosInCatalog);
 
   const handleClearCache = () => {
     // Clear all localStorage
@@ -28,7 +31,36 @@ export const SettingsPage: React.FC = () => {
         <h1 className="text-xl font-bold text-tg-text">Настройки</h1>
       </div>
 
-      <div className="px-4">
+      <div className="px-4 space-y-4">
+        <div className="bg-tg-secondary rounded-2xl p-4">
+          <h3 className="text-base font-medium text-tg-text mb-1">
+            Отображение каталога
+          </h3>
+          <p className="text-sm text-tg-hint mb-3">
+            Показывать видео в карточках товаров
+          </p>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              role="switch"
+              aria-checked={showVideosInCatalog}
+              onClick={() => setShowVideosInCatalog(!showVideosInCatalog)}
+              className={`relative w-12 h-7 rounded-full transition-colors ${
+                showVideosInCatalog ? 'bg-tg-button' : 'bg-tg-hint/30'
+              }`}
+            >
+              <span
+                className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white transition-transform ${
+                  showVideosInCatalog ? 'translate-x-6' : 'translate-x-0'
+                }`}
+              />
+            </button>
+            <span className="text-sm text-tg-text">
+              {showVideosInCatalog ? 'Включено' : 'Выключено'}
+            </span>
+          </div>
+        </div>
+
         <div className="bg-tg-secondary rounded-2xl p-4">
           <h3 className="text-base font-medium text-tg-text mb-1">
             Очистить кэш

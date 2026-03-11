@@ -10,6 +10,7 @@ import type { Product, ProductMedia } from '../types';
 import { useCartStore } from '../store/cartStore';
 import { useFavoritesStore } from '../store/favoritesStore';
 import { useConfigStore } from '../store/configStore';
+import { usePreferencesStore } from '../store/preferencesStore';
 import { Button } from '../components/ui/Button';
 import { Skeleton } from '../components/ui/Skeleton';
 import { ProductCard } from '../components/ProductCard';
@@ -32,6 +33,7 @@ export const ProductPage: React.FC = () => {
   const cartItems = useCartStore((s) => s.items);
   const getCartItemByProductId = useCartStore((s) => s.getCartItemByProductId);
   const toggleFav = useFavoritesStore((s) => s.toggle);
+  const showVideosInCatalog = usePreferencesStore((s) => s.showVideosInCatalog);
 
   const hasVariants = Boolean(product?.variants?.length && product?.modification_type);
   const cartItem = product
@@ -41,17 +43,26 @@ export const ProductPage: React.FC = () => {
     : undefined;
   const inCart = !!cartItem;
 
-  // Build sorted media list: videos first, then images
+  // Build sorted media list: videos first, then images; filter videos if setting disabled
   const mediaList = useMemo<ProductMedia[]>(() => {
     if (!product) return [];
+    let items: ProductMedia[];
     if (product.media && product.media.length > 0) {
-      return [...product.media].sort((a, b) => a.sort_order - b.sort_order);
+      items = [...product.media].sort((a, b) => a.sort_order - b.sort_order);
+    } else if (product.image_url) {
+      items = [{ id: 0, media_type: 'image', url: product.image_url, sort_order: 0 }];
+    } else {
+      return [];
     }
-    if (product.image_url) {
-      return [{ id: 0, media_type: 'image', url: product.image_url, sort_order: 0 }];
+    if (!showVideosInCatalog) {
+      const filtered = items.filter((m) => m.media_type !== 'video');
+      if (filtered.length === 0 && product.image_url) {
+        return [{ id: 0, media_type: 'image', url: product.image_url, sort_order: 0 }];
+      }
+      return filtered;
     }
-    return [];
-  }, [product]);
+    return items;
+  }, [product, showVideosInCatalog]);
 
   useEffect(() => {
     if (!id) return;

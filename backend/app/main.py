@@ -73,6 +73,37 @@ async def _daily_matches_job():
         logger.error("Daily matches job failed: %s", e, exc_info=True)
 
 
+async def _autopost_job():
+    """Background job: post product to channel at configured times."""
+    try:
+        import json
+        from datetime import datetime
+        from sqlalchemy import select
+        from app.db.session import async_session
+        from app.db.models.app_config import AppConfig
+        from app.services.autopost_service import run_autopost
+
+        async with async_session() as db:
+            result = await db.execute(select(AppConfig).limit(1))
+            config = result.scalar_one_or_none()
+            if not config or not getattr(config, "autopost_enabled", False):
+                return
+            raw_times = getattr(config, "autopost_times", None) or "[]"
+            try:
+                times = json.loads(raw_times) if isinstance(raw_times, str) else raw_times
+            except (json.JSONDecodeError, TypeError):
+                times = ["13:00", "19:00"]
+            posts_per_day = max(1, min(10, getattr(config, "autopost_posts_per_day", 2) or 2))
+            times = times[:posts_per_day] if isinstance(times, list) else []
+
+            now = datetime.now()
+            current = now.strftime("%H:%M")
+            if current in times:
+                await run_autopost(db)
+    except Exception as e:
+        logger.error("Autopost job failed: %s", e, exc_info=True)
+
+
 async def _ensure_tables():
     """Create missing tables on startup (idempotent)."""
     from app.db.base import Base
@@ -207,12 +238,13 @@ async def lifespan(application: FastAPI):
             scheduler.start()
             logger.info(f"Periodic sync scheduler started: every {interval} minutes")
 
-    # Daily matches job (12:00) when bot is configured
+    # Daily matches + autopost jobs when bot is configured
     if is_bot_configured():
         scheduler.add_job(_daily_matches_job, "cron", hour=12, minute=0, id="daily_matches")
+        scheduler.add_job(_autopost_job, "interval", minutes=5, id="autopost")
         if not scheduler.running:
             scheduler.start()
-            logger.info("Scheduler started (daily matches at 12:00)")
+            logger.info("Scheduler started (daily matches, autopost every 5 min)")
 
     yield
     # Shutdown

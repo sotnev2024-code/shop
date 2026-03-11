@@ -58,6 +58,13 @@ export const AdminSettingsPage: React.FC = () => {
   const [bonusSpendEnabled, setBonusSpendEnabled] = useState(false);
   const [bonusSpendLimitType, setBonusSpendLimitType] = useState<'percent' | 'fixed'>('percent');
   const [bonusSpendLimitValue, setBonusSpendLimitValue] = useState('0');
+  const [autopostEnabled, setAutopostEnabled] = useState(false);
+  const [autopostTimes, setAutopostTimes] = useState<string[]>(['13:00', '19:00']);
+  const [autopostPostsPerDay, setAutopostPostsPerDay] = useState(2);
+  const [autopostTemplate, setAutopostTemplate] = useState('');
+  const [autopostButtonText, setAutopostButtonText] = useState('Заказать');
+  const [autopostButtonColor, setAutopostButtonColor] = useState<'green' | 'blue' | 'red' | 'gray'>('green');
+  const [autopostHidePrice, setAutopostHidePrice] = useState(false);
   const [saved, setSaved] = useState(false);
 
   // --- Bot message templates (Редактирование текстов) ---
@@ -120,6 +127,7 @@ export const AdminSettingsPage: React.FC = () => {
     | 'delivery'
     | 'banners'
     | 'bonuses'
+    | 'autopost'
     | 'bot_texts'
     | 'categories'
     | 'modifications'
@@ -133,6 +141,7 @@ export const AdminSettingsPage: React.FC = () => {
     { id: 'delivery', label: 'Доставка' },
     { id: 'banners', label: 'Баннеры и каталог' },
     { id: 'bonuses', label: 'Бонусы' },
+    { id: 'autopost', label: 'Автопостинг' },
     { id: 'bot_texts', label: 'Редактирование текстов' },
     { id: 'categories', label: 'Категории' },
     { id: 'modifications', label: 'Модификации' },
@@ -236,6 +245,13 @@ export const AdminSettingsPage: React.FC = () => {
     setBonusSpendLimitType(data.bonus_spend_limit_type === 'fixed' ? 'fixed' : 'percent');
     setBonusSpendLimitValue(String(data.bonus_spend_limit_value ?? 0));
     setBotTemplates(data.bot_message_templates ?? null);
+    setAutopostEnabled(!!data.autopost_enabled);
+    setAutopostTimes(Array.isArray(data.autopost_times) ? data.autopost_times : ['13:00', '19:00']);
+    setAutopostPostsPerDay(Math.max(1, Math.min(10, data.autopost_posts_per_day ?? 2)));
+    setAutopostTemplate(data.autopost_template ?? '');
+    setAutopostButtonText(data.autopost_button_text ?? 'Заказать');
+    setAutopostButtonColor(data.autopost_button_color === 'blue' ? 'blue' : data.autopost_button_color === 'red' ? 'red' : data.autopost_button_color === 'gray' ? 'gray' : 'green');
+    setAutopostHidePrice(!!data.autopost_hide_price);
   };
 
   useEffect(() => {
@@ -289,6 +305,13 @@ export const AdminSettingsPage: React.FC = () => {
         bonus_spend_enabled: bonusSpendEnabled,
         bonus_spend_limit_type: bonusSpendLimitType,
         bonus_spend_limit_value: parseFloat(bonusSpendLimitValue) || 0,
+        autopost_enabled: autopostEnabled,
+        autopost_times: autopostTimes,
+        autopost_posts_per_day: autopostPostsPerDay,
+        autopost_template: autopostTemplate.trim() || null,
+        autopost_button_text: autopostButtonText.trim() || 'Заказать',
+        autopost_button_color: autopostButtonColor,
+        autopost_hide_price: autopostHidePrice,
       };
       if (botTemplates != null) payload.bot_message_templates = botTemplates;
       await adminUpdateSettings(payload);
@@ -867,6 +890,86 @@ export const AdminSettingsPage: React.FC = () => {
               ))}
             </div>
           </div>
+          <Button onClick={handleSave} fullWidth>{saved ? '✓ Сохранено!' : 'Сохранить'}</Button>
+        </div>
+      )}
+
+      {/* --- Автопостинг --- */}
+      {activeSection === 'autopost' && (
+        <div className="space-y-4">
+          <h2 className="text-base font-semibold text-tg-text">Автопостинг в канал</h2>
+          <p className="text-sm text-tg-hint">Автоматическая публикация товаров в Telegram-канал (указан в «Основные»). Бот должен быть админом канала.</p>
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" checked={autopostEnabled} onChange={(e) => setAutopostEnabled(e.target.checked)} className="w-5 h-5 rounded" />
+            <span className="text-tg-text">Включить автопостинг</span>
+          </label>
+          {autopostEnabled && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-tg-hint mb-1">Время публикации (по местному времени сервера)</label>
+                <div className="flex flex-wrap gap-2">
+                  {autopostTimes.map((t, i) => (
+                    <div key={i} className="flex items-center gap-1">
+                      <input
+                        type="time"
+                        value={t}
+                        onChange={(e) => {
+                          const next = [...autopostTimes];
+                          next[i] = e.target.value;
+                          setAutopostTimes(next);
+                        }}
+                        className="px-2 py-1.5 rounded-lg bg-tg-secondary text-tg-text text-sm"
+                      />
+                      {autopostTimes.length > 1 && (
+                        <button type="button" onClick={() => setAutopostTimes(autopostTimes.filter((_, j) => j !== i))} className="text-red-500 p-1">×</button>
+                      )}
+                    </div>
+                  ))}
+                  {autopostTimes.length < 10 && (
+                    <button type="button" onClick={() => setAutopostTimes([...autopostTimes, '12:00'])} className="px-3 py-1.5 rounded-lg bg-tg-button text-tg-button-text text-sm">+ Добавить</button>
+                  )}
+                </div>
+              </div>
+              <Input
+                label="Постов в день (1–10)"
+                type="number"
+                min={1}
+                max={10}
+                value={String(autopostPostsPerDay)}
+                onChange={(e) => setAutopostPostsPerDay(Math.max(1, Math.min(10, parseInt(e.target.value, 10) || 1)))}
+              />
+              <div>
+                <label className="block text-sm font-medium text-tg-hint mb-1">Шаблон поста (HTML, переменные: {'{product_name}'}, {'{product_description}'}, {'{product_price}'}, {'{modification_block}'}, {'{product_url}'}, {'{shop_name}'})</label>
+                <textarea
+                  value={autopostTemplate}
+                  onChange={(e) => setAutopostTemplate(e.target.value)}
+                  placeholder={'<b>{product_name}</b>\n\n{product_description}\n\nЦена: {product_price}\n\n{modification_block}\nЗаказать можно по кнопке ниже👇'}
+                  rows={8}
+                  className="w-full px-4 py-2.5 rounded-xl bg-tg-secondary text-tg-text border-none outline-none resize-none font-mono text-sm"
+                />
+              </div>
+              <Input
+                label="Текст кнопки"
+                value={autopostButtonText}
+                onChange={(e) => setAutopostButtonText(e.target.value)}
+                placeholder="Заказать"
+              />
+              <div>
+                <label className="block text-sm font-medium text-tg-hint mb-1">Цвет кнопки</label>
+                <div className="flex gap-2 flex-wrap">
+                  {(['green', 'blue', 'red', 'gray'] as const).map((c) => (
+                    <button key={c} type="button" onClick={() => setAutopostButtonColor(c)} className={`px-3 py-2 rounded-lg text-sm ${autopostButtonColor === c ? 'bg-tg-button text-tg-button-text' : 'bg-tg-bg text-tg-text'}`}>
+                      {c === 'green' ? 'Зелёный' : c === 'blue' ? 'Синий' : c === 'red' ? 'Красный' : 'Серый'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" checked={autopostHidePrice} onChange={(e) => setAutopostHidePrice(e.target.checked)} className="w-5 h-5 rounded" />
+                <span className="text-tg-text">Скрывать цену (показывать «Цена скрыта»)</span>
+              </label>
+            </>
+          )}
           <Button onClick={handleSave} fullWidth>{saved ? '✓ Сохранено!' : 'Сохранить'}</Button>
         </div>
       )}

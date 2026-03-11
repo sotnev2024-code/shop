@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 import os
 import uuid
@@ -57,6 +58,19 @@ ALLOWED_VIDEO_TYPES = {"video/mp4", "video/webm", "video/quicktime"}
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 
 router = APIRouter()
+
+
+def _parse_autopost_times(raw: Optional[str]) -> list:
+    """Parse autopost_times JSON string to list of 'HH:MM'."""
+    if not raw or not str(raw).strip():
+        return ["13:00", "19:00"]
+    try:
+        data = json.loads(raw) if isinstance(raw, str) else raw
+        if isinstance(data, list):
+            return [str(x) for x in data if x][:10]
+    except (json.JSONDecodeError, TypeError):
+        pass
+    return ["13:00", "19:00"]
 
 
 # ---- Dashboard / Stats ----
@@ -1429,6 +1443,13 @@ async def admin_get_settings(
             "min_order_amount_pickup": 0,
             "min_order_amount_delivery": 0,
             "bot_message_templates": get_default_templates(),
+            "autopost_enabled": False,
+            "autopost_times": ["13:00", "19:00"],
+            "autopost_posts_per_day": 2,
+            "autopost_template": None,
+            "autopost_button_text": "Заказать",
+            "autopost_button_color": "green",
+            "autopost_hide_price": False,
         }
     templates = await get_templates(db)
     return {
@@ -1461,6 +1482,13 @@ async def admin_get_settings(
         "bonus_spend_limit_type": getattr(config, "bonus_spend_limit_type", "percent"),
         "bonus_spend_limit_value": float(getattr(config, "bonus_spend_limit_value", 0)),
         "bot_message_templates": templates,
+        "autopost_enabled": getattr(config, "autopost_enabled", False),
+        "autopost_times": _parse_autopost_times(getattr(config, "autopost_times", None)),
+        "autopost_posts_per_day": max(1, min(10, getattr(config, "autopost_posts_per_day", 2) or 2)),
+        "autopost_template": getattr(config, "autopost_template", None) or None,
+        "autopost_button_text": getattr(config, "autopost_button_text", None) or "Заказать",
+        "autopost_button_color": getattr(config, "autopost_button_color", None) or "green",
+        "autopost_hide_price": getattr(config, "autopost_hide_price", False),
     }
 
 
@@ -1498,6 +1526,8 @@ async def admin_update_settings(
         "bonus_spend_enabled", "bonus_spend_limit_type", "bonus_spend_limit_value",
         "delivery_cost", "free_delivery_min_amount",
         "min_order_amount_pickup", "min_order_amount_delivery",
+        "autopost_enabled", "autopost_times", "autopost_posts_per_day",
+        "autopost_template", "autopost_button_text", "autopost_button_color", "autopost_hide_price",
     }
     for key, value in data.items():
         if key not in allowed:
@@ -1506,8 +1536,22 @@ async def admin_update_settings(
                    "daily_matches_forum_chat_id", "daily_matches_forum_topic_id"):
             value = value.strip() if isinstance(value, str) and value.strip() else None
         if key == "bot_message_templates":
-            import json
             value = json.dumps(value) if isinstance(value, dict) else (value if isinstance(value, str) else None)
+        if key == "autopost_times":
+            value = json.dumps(value) if isinstance(value, list) else (value if isinstance(value, str) else "[]")
+        if key == "autopost_posts_per_day":
+            try:
+                value = max(1, min(10, int(value))) if value not in (None, "") else 2
+            except (TypeError, ValueError):
+                value = 2
+        if key in ("autopost_enabled", "autopost_hide_price"):
+            value = bool(value) if value not in (None, "") else False
+        if key == "autopost_button_text":
+            value = (value or "Заказать").strip() if isinstance(value, str) else "Заказать"
+        if key == "autopost_button_color":
+            value = (value or "green").strip() if isinstance(value, str) else "green"
+        if key == "autopost_template":
+            value = value.strip() if isinstance(value, str) and value.strip() else None
         if key == "admin_ids":
             # Accept string (comma-separated) or list of ints; prevent lockout: keep current admin in list
             if isinstance(value, list):

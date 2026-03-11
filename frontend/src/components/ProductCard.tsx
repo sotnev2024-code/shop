@@ -9,6 +9,7 @@ import 'swiper/css/pagination';
 import type { Product, ProductMedia } from '../types';
 import { useCartStore } from '../store/cartStore';
 import { useFavoritesStore } from '../store/favoritesStore';
+import { usePreferencesStore } from '../store/preferencesStore';
 
 interface ProductCardProps {
   product: Product;
@@ -22,6 +23,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const getCartItemByProductId = useCartStore((s) => s.getCartItemByProductId);
   const toggleFav = useFavoritesStore((s) => s.toggle);
   const isProductFavorite = useFavoritesStore((s) => s.items.some((item) => item.id === product.id));
+  const showVideosInCatalog = usePreferencesStore((s) => s.showVideosInCatalog);
 
   const [justAdded, setJustAdded] = useState(false);
   const [showVariantPicker, setShowVariantPicker] = useState(false);
@@ -36,16 +38,25 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     : cartItems.find((item) => item.product_id === product.id && item.modification_type_id == null);
   const inCart = !!cartItem;
 
-  // Build sorted media list: videos first, then images
+  // Build sorted media list: videos first, then images; filter videos if setting disabled
   const mediaList = useMemo<ProductMedia[]>(() => {
+    let items: ProductMedia[];
     if (product.media && product.media.length > 0) {
-      return [...product.media].sort((a, b) => a.sort_order - b.sort_order);
+      items = [...product.media].sort((a, b) => a.sort_order - b.sort_order);
+    } else if (product.image_url) {
+      items = [{ id: 0, media_type: 'image', url: product.image_url, sort_order: 0 }];
+    } else {
+      return [];
     }
-    if (product.image_url) {
-      return [{ id: 0, media_type: 'image', url: product.image_url, sort_order: 0 }];
+    if (!showVideosInCatalog) {
+      const filtered = items.filter((m) => m.media_type !== 'video');
+      if (filtered.length === 0 && product.image_url) {
+        return [{ id: 0, media_type: 'image', url: product.image_url, sort_order: 0 }];
+      }
+      return filtered;
     }
-    return [];
-  }, [product.media, product.image_url]);
+    return items;
+  }, [product.media, product.image_url, showVideosInCatalog]);
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();

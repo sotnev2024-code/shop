@@ -70,6 +70,16 @@ class AppConfig(Base):
     # --- Bot message templates (admin-editable, JSON) ---
     bot_message_templates: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default=None)
 
+    # --- Autopost to channel (admin-editable) ---
+    autopost_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    autopost_times: Mapped[Optional[str]] = mapped_column(String(500), nullable=True, default=None)
+    autopost_posts_per_day: Mapped[int] = mapped_column(Integer, default=2)
+    autopost_template: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default=None)
+    autopost_button_text: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, default=None)
+    autopost_button_color: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, default=None)
+    autopost_last_product_index: Mapped[int] = mapped_column(Integer, default=0)
+    autopost_hide_price: Mapped[bool] = mapped_column(Boolean, default=False)
+
     # --- Bonus system (admin-editable) ---
     bonus_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     bonus_welcome_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
