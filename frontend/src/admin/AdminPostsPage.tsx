@@ -57,6 +57,7 @@ export const AdminPostsPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [sending, setSending] = useState(false);
   const [sendModal, setSendModal] = useState<AdminPost | null>(null);
+  const [publishModalOpen, setPublishModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const lastAutoFilledProductId = useRef<number | null>(null);
 
@@ -133,10 +134,18 @@ export const AdminPostsPage: React.FC = () => {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleCreate = async () => {
+  const handlePublishClick = () => {
+    if (!channelId) {
+      alert('Укажите ID канала в настройках (Основные).');
+      return;
+    }
+    setPublishModalOpen(true);
+  };
+
+  const handlePublishConfirm = async () => {
     setSaving(true);
     try {
-      await adminCreatePost({
+      const { data: post } = await adminCreatePost({
         text: text.trim(),
         product_id: productId ? Number(productId) : null,
         photo_url: !useProductPhoto && photoUrl ? photoUrl : undefined,
@@ -144,6 +153,8 @@ export const AdminPostsPage: React.FC = () => {
         button_url: buttonUrl.trim() || undefined,
         button_color: buttonColor || undefined,
       });
+      await adminSendPost(post.id);
+      setPublishModalOpen(false);
       fetchPosts();
       setText('');
       setProductId('');
@@ -152,7 +163,7 @@ export const AdminPostsPage: React.FC = () => {
       setButtonText('');
       setButtonUrl('');
     } catch (err: any) {
-      const msg = err?.response?.data?.detail ?? 'Ошибка создания';
+      const msg = err?.response?.data?.detail ?? 'Ошибка публикации';
       alert(typeof msg === 'string' ? msg : JSON.stringify(msg));
     }
     setSaving(false);
@@ -307,8 +318,9 @@ export const AdminPostsPage: React.FC = () => {
           </div>
         </div>
 
-        <Button onClick={handleCreate} disabled={saving} fullWidth>
-          {saving ? 'Сохранение...' : 'Создать черновик'}
+        <Button onClick={handlePublishClick} disabled={saving} fullWidth>
+          <Send className="w-4 h-4 mr-2" />
+          {saving ? 'Публикация...' : 'Опубликовать'}
         </Button>
       </div>
 
@@ -388,7 +400,30 @@ export const AdminPostsPage: React.FC = () => {
         </div>
       )}
 
-      {/* Send confirmation modal */}
+      {/* Publish confirmation modal (new post) */}
+      {publishModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => !saving && setPublishModalOpen(false)}>
+          <div className="bg-tg-bg rounded-xl p-4 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-tg-text mb-2">Опубликовать пост?</h3>
+            <p className="text-sm text-tg-hint mb-2">
+              Пост будет опубликован в канал <strong>{channelId || 'не настроен'}</strong>
+            </p>
+            <div className="p-3 rounded-lg bg-tg-secondary mb-4 text-sm text-tg-text max-h-32 overflow-y-auto">
+              {text.trim() || '(пусто)'}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => setPublishModalOpen(false)} disabled={saving} className="flex-1">
+                Отмена
+              </Button>
+              <Button onClick={handlePublishConfirm} disabled={saving} className="flex-1">
+                {saving ? 'Публикация...' : 'Опубликовать'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Send confirmation modal (existing draft) */}
       {sendModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => !sending && setSendModal(null)}>
           <div className="bg-tg-bg rounded-xl p-4 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
