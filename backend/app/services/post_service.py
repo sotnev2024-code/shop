@@ -80,7 +80,11 @@ async def send_post_to_channel(
     btn_url = (button_url or "").strip()
     if btn_text and btn_url:
         style = _color_to_style(button_color)
-        btn = InlineKeyboardButton(text=btn_text, url=btn_url, style=style)
+        # Build button dict: style is in Telegram API 7.x, aiogram 3.13 may not have it
+        btn_dict = {"text": btn_text, "url": btn_url}
+        if style:
+            btn_dict["style"] = style
+        btn = InlineKeyboardButton.model_validate(btn_dict)
         reply_markup = InlineKeyboardMarkup(inline_keyboard=[[btn]])
 
     abs_photo = _absolute_photo_url(photo_url) if photo_url else None
