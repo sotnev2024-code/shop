@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 
 from aiogram import Router, types
 from aiogram.filters import CommandStart, CommandObject
@@ -13,7 +14,7 @@ logger = logging.getLogger(__name__)
 router = Router()
 
 
-def _make_webapp_button(text: str, url: str, style: str | None = None):
+def _make_webapp_button(text: str, url: str, style: Optional[str] = None):
     """Create InlineKeyboardButton with WebApp. Style may not be supported for WebApp in all clients."""
     kwargs = {"text": text, "web_app": WebAppInfo(url=url)}
     if style:
