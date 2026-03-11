@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-from app.bot.bot import get_bot, get_bot_username
+from app.bot.bot import get_bot
 from app.config import settings
 
 
@@ -33,24 +33,18 @@ def _to_https(url: str) -> str:
 
 
 def _get_webapp_url_https() -> str:
-    """Return webapp URL, forcing HTTPS when no link is specified."""
+    """Return webapp URL from settings, forcing HTTPS. Uses WEBAPP_URL from .env."""
     return _to_https(settings.webapp_url)
 
 
-def _build_product_deeplink(product_id: int) -> str:
-    """Build t.me deep link for product: https://t.me/<bot_username>?start=product_<id>."""
-    username = get_bot_username()
-    if not username:
-        return _get_webapp_url_https().rstrip("/") + f"/product/{product_id}"
-    return f"https://t.me/{username}?start=product_{product_id}"
+def _build_product_url(product_id: int) -> str:
+    """Direct link to product in web app: https://<webapp>/product/<id>."""
+    return _get_webapp_url_https().rstrip("/") + f"/product/{product_id}"
 
 
-def _build_shop_deeplink() -> str:
-    """Build t.me deep link for shop or webapp URL (HTTPS)."""
-    username = get_bot_username()
-    if not username:
-        return _get_webapp_url_https()
-    return f"https://t.me/{username}?start=start"
+def _build_shop_url() -> str:
+    """Direct link to web app (WEBAPP_URL)."""
+    return _get_webapp_url_https()
 
 
 def _color_to_style(button_color: Optional[str]) -> Optional[str]:

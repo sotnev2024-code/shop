@@ -18,7 +18,7 @@ from app.db.models.post import Post
 from app.api.deps import get_admin_user
 from app.schemas.post import PostCreate, PostResponse, PostListResponse
 from app.bot.bot import get_bot, is_bot_configured
-from app.services.post_service import send_post_to_channel, _build_product_deeplink, _build_shop_deeplink
+from app.services.post_service import send_post_to_channel, _build_product_url, _build_shop_url
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +70,7 @@ def _fill_post_from_product(post_data: dict, product: Product) -> dict:
         data["button_text"] = "Перейти к товару"
 
     if not data.get("button_url") and product.id:
-        data["button_url"] = _build_product_deeplink(product.id)
+        data["button_url"] = _build_product_url(product.id)
 
     return data
 
@@ -168,9 +168,9 @@ async def admin_send_post(
     button_text = (post.button_text or "").strip() or None
     button_url = (post.button_url or "").strip() or None
     if not button_url and post.product_id:
-        button_url = _build_product_deeplink(post.product_id)
+        button_url = _build_product_url(post.product_id)
     if not button_url:
-        button_url = _build_shop_deeplink()
+        button_url = _build_shop_url()
     if not button_text:
         button_text = "Открыть магазин"
 

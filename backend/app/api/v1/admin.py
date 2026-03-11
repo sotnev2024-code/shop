@@ -270,6 +270,13 @@ async def admin_update_order(
     await db.commit()
     await db.refresh(order)
 
+    if old_status != data.status:
+        try:
+            from app.bot.handlers.admin_notify import notify_user_order_status_changed
+            await notify_user_order_status_changed(db=db, order=order, new_status=data.status)
+        except Exception:
+            pass
+
     from app.api.v1.orders import _order_to_response
     return _order_to_response(order)
 
@@ -1390,6 +1397,7 @@ async def admin_get_settings(
     result = await db.execute(select(AppConfig).limit(1))
     config = result.scalar_one_or_none()
     default_admin_ids = settings.admin_ids or ""
+    from app.services.bot_message_service import get_templates, get_default_templates
     if not config:
         return {
             "shop_name": "My Shop",
@@ -1400,6 +1408,9 @@ async def admin_get_settings(
             "delivery_city": None,
             "support_link": None,
             "channel_id": getattr(settings, "channel_id", None) or None,
+            "order_notification_chat_id": None,
+            "daily_matches_forum_chat_id": None,
+            "daily_matches_forum_topic_id": None,
             "admin_ids": default_admin_ids,
             "current_telegram_id": admin.telegram_id,
             "banner_aspect_shape": "rectangle",
@@ -1417,7 +1428,9 @@ async def admin_get_settings(
             "free_delivery_min_amount": 0,
             "min_order_amount_pickup": 0,
             "min_order_amount_delivery": 0,
+            "bot_message_templates": get_default_templates(),
         }
+    templates = await get_templates(db)
     return {
         "shop_name": config.shop_name,
         "pickup_enabled": config.pickup_enabled,
@@ -1431,6 +1444,9 @@ async def admin_get_settings(
         "min_order_amount_delivery": float(getattr(config, "min_order_amount_delivery", 0)),
         "support_link": getattr(config, "support_link", None) or None,
         "channel_id": getattr(config, "channel_id", None) or getattr(settings, "channel_id", None) or None,
+        "order_notification_chat_id": getattr(config, "order_notification_chat_id", None) or None,
+        "daily_matches_forum_chat_id": getattr(config, "daily_matches_forum_chat_id", None) or None,
+        "daily_matches_forum_topic_id": getattr(config, "daily_matches_forum_topic_id", None) or None,
         "admin_ids": (getattr(config, "admin_ids", None) or "").strip() or default_admin_ids,
         "current_telegram_id": admin.telegram_id,
         "banner_aspect_shape": getattr(config, "banner_aspect_shape", "rectangle"),
@@ -1444,6 +1460,17 @@ async def admin_get_settings(
         "bonus_spend_enabled": getattr(config, "bonus_spend_enabled", False),
         "bonus_spend_limit_type": getattr(config, "bonus_spend_limit_type", "percent"),
         "bonus_spend_limit_value": float(getattr(config, "bonus_spend_limit_value", 0)),
+        "bot_message_templates": templates,
+    }
+
+
+@router.get("/bot-templates/defaults")
+async def admin_get_bot_template_defaults(admin: User = Depends(get_admin_user)):
+    """Return default templates and variables by context for UI reference."""
+    from app.services.bot_message_service import get_default_templates, get_variables_by_context
+    return {
+        "templates": get_default_templates(),
+        "variables_by_context": get_variables_by_context(),
     }
 
 
@@ -1463,19 +1490,24 @@ async def admin_update_settings(
     allowed = {
         "shop_name", "pickup_enabled", "delivery_enabled",
         "currency", "store_address", "delivery_city",
-        "support_link", "channel_id", "admin_ids",
+        "support_link", "channel_id", "admin_ids", "order_notification_chat_id",
+        "daily_matches_forum_chat_id", "daily_matches_forum_topic_id", "bot_message_templates",
         "banner_aspect_shape", "banner_size", "category_image_size",
         "bonus_enabled", "bonus_welcome_enabled", "bonus_welcome_amount",
         "bonus_purchase_enabled", "bonus_purchase_percent",
-        "bonus_spend_enabled",         "bonus_spend_limit_type", "bonus_spend_limit_value",
+        "bonus_spend_enabled", "bonus_spend_limit_type", "bonus_spend_limit_value",
         "delivery_cost", "free_delivery_min_amount",
         "min_order_amount_pickup", "min_order_amount_delivery",
     }
     for key, value in data.items():
         if key not in allowed:
             continue
-        if key in ("store_address", "delivery_city", "support_link", "channel_id"):
+        if key in ("store_address", "delivery_city", "support_link", "channel_id", "order_notification_chat_id",
+                   "daily_matches_forum_chat_id", "daily_matches_forum_topic_id"):
             value = value.strip() if isinstance(value, str) and value.strip() else None
+        if key == "bot_message_templates":
+            import json
+            value = json.dumps(value) if isinstance(value, dict) else (value if isinstance(value, str) else None)
         if key == "admin_ids":
             # Accept string (comma-separated) or list of ints; prevent lockout: keep current admin in list
             if isinstance(value, list):

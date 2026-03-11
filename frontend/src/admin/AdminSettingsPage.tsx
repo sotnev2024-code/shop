@@ -3,6 +3,7 @@ import { Plus, Trash2, Edit, Check, X, ChevronUp, ChevronDown, ChevronRight } fr
 import {
   adminGetSettings,
   adminUpdateSettings,
+  adminGetBotTemplateDefaults,
   adminGetCategories,
   adminCreateCategory,
   adminUpdateCategory,
@@ -20,7 +21,7 @@ import {
   adminGetErrorLogs,
   adminGetErrorLogDetail,
 } from '../api/endpoints';
-import type { Category, ErrorLog, ModificationType, Product } from '../types';
+import type { Category, ErrorLog, ModificationType, Product, BotMessageTemplates, BotTemplateDefaultsResponse } from '../types';
 import type { BulkPriceScope, BulkPriceOperation } from '../types';
 import { useConfigStore } from '../store/configStore';
 import { Button } from '../components/ui/Button';
@@ -40,6 +41,9 @@ export const AdminSettingsPage: React.FC = () => {
   const [minOrderAmountDelivery, setMinOrderAmountDelivery] = useState('');
   const [supportLink, setSupportLink] = useState('');
   const [channelId, setChannelId] = useState('');
+  const [orderNotificationChatId, setOrderNotificationChatId] = useState('');
+  const [dailyMatchesForumChatId, setDailyMatchesForumChatId] = useState('');
+  const [dailyMatchesForumTopicId, setDailyMatchesForumTopicId] = useState('');
   const [adminIds, setAdminIds] = useState('');
   const [currentTelegramId, setCurrentTelegramId] = useState<number | null>(null);
   const [logoUrl, setLogoUrl] = useState('');
@@ -55,6 +59,10 @@ export const AdminSettingsPage: React.FC = () => {
   const [bonusSpendLimitType, setBonusSpendLimitType] = useState<'percent' | 'fixed'>('percent');
   const [bonusSpendLimitValue, setBonusSpendLimitValue] = useState('0');
   const [saved, setSaved] = useState(false);
+
+  // --- Bot message templates (Редактирование текстов) ---
+  const [botTemplates, setBotTemplates] = useState<BotMessageTemplates | null>(null);
+  const [botVariablesByContext, setBotVariablesByContext] = useState<Record<string, string[]>>({});
 
   // --- Categories state ---
   const [categories, setCategories] = useState<Category[]>([]);
@@ -112,6 +120,7 @@ export const AdminSettingsPage: React.FC = () => {
     | 'delivery'
     | 'banners'
     | 'bonuses'
+    | 'bot_texts'
     | 'categories'
     | 'modifications'
     | 'bulk'
@@ -124,6 +133,7 @@ export const AdminSettingsPage: React.FC = () => {
     { id: 'delivery', label: 'Доставка' },
     { id: 'banners', label: 'Баннеры и каталог' },
     { id: 'bonuses', label: 'Бонусы' },
+    { id: 'bot_texts', label: 'Редактирование текстов' },
     { id: 'categories', label: 'Категории' },
     { id: 'modifications', label: 'Модификации' },
     { id: 'bulk', label: 'Массовые цены' },
@@ -209,6 +219,9 @@ export const AdminSettingsPage: React.FC = () => {
     setMinOrderAmountDelivery(String(data.min_order_amount_delivery ?? 0));
     setSupportLink(data.support_link ?? '');
     setChannelId(data.channel_id ?? '');
+    setOrderNotificationChatId(data.order_notification_chat_id ?? '');
+    setDailyMatchesForumChatId(data.daily_matches_forum_chat_id ?? '');
+    setDailyMatchesForumTopicId(data.daily_matches_forum_topic_id ?? '');
     setAdminIds(data.admin_ids ?? '');
     setCurrentTelegramId(data.current_telegram_id ?? null);
     setBannerAspectShape(data.banner_aspect_shape === 'square' ? 'square' : 'rectangle');
@@ -222,11 +235,33 @@ export const AdminSettingsPage: React.FC = () => {
     setBonusSpendEnabled(!!data.bonus_spend_enabled);
     setBonusSpendLimitType(data.bonus_spend_limit_type === 'fixed' ? 'fixed' : 'percent');
     setBonusSpendLimitValue(String(data.bonus_spend_limit_value ?? 0));
+    setBotTemplates(data.bot_message_templates ?? null);
+  };
+
+  useEffect(() => {
+    if (activeSection === 'bot_texts' && Object.keys(botVariablesByContext).length === 0) {
+      adminGetBotTemplateDefaults().then(({ data }: { data: BotTemplateDefaultsResponse }) => {
+        setBotVariablesByContext(data.variables_by_context ?? {});
+      });
+    }
+  }, [activeSection]);
+
+  const updateBotTemplate = <K extends keyof BotMessageTemplates>(
+    key: K,
+    field: string,
+    value: string | null,
+  ) => {
+    setBotTemplates((prev) => {
+      const current = prev ?? {};
+      const block = { ...(current[key] as Record<string, unknown>) };
+      (block as Record<string, unknown>)[field] = value;
+      return { ...current, [key]: block };
+    });
   };
 
   const handleSave = async () => {
     try {
-      await adminUpdateSettings({
+      const payload: Record<string, unknown> = {
         shop_name: shopName,
         pickup_enabled: pickupEnabled,
         delivery_enabled: deliveryEnabled,
@@ -239,6 +274,9 @@ export const AdminSettingsPage: React.FC = () => {
         min_order_amount_delivery: parseFloat(minOrderAmountDelivery) || 0,
         support_link: supportLink.trim() || null,
         channel_id: channelId.trim() || null,
+        order_notification_chat_id: orderNotificationChatId.trim() || null,
+        daily_matches_forum_chat_id: dailyMatchesForumChatId.trim() || null,
+        daily_matches_forum_topic_id: dailyMatchesForumTopicId.trim() || null,
         admin_ids: adminIds.trim(),
         banner_aspect_shape: bannerAspectShape,
         banner_size: bannerSize,
@@ -251,7 +289,9 @@ export const AdminSettingsPage: React.FC = () => {
         bonus_spend_enabled: bonusSpendEnabled,
         bonus_spend_limit_type: bonusSpendLimitType,
         bonus_spend_limit_value: parseFloat(bonusSpendLimitValue) || 0,
-      });
+      };
+      if (botTemplates != null) payload.bot_message_templates = botTemplates;
+      await adminUpdateSettings(payload);
       await useConfigStore.getState().fetchConfig();
       const { data } = await adminGetSettings();
       applySettingsToState(data);
@@ -733,6 +773,26 @@ export const AdminSettingsPage: React.FC = () => {
             onChange={(e) => setChannelId(e.target.value)}
           />
           <p className="text-xs text-tg-hint -mt-2">ID канала для публикации постов (раздел «Посты»). Можно указать numeric ID вида -100... или @username. Бот должен быть админом канала.</p>
+          <Input
+            label="Чат для уведомлений о заказах"
+            placeholder="-1001234567890 или @group_username"
+            value={orderNotificationChatId}
+            onChange={(e) => setOrderNotificationChatId(e.target.value)}
+          />
+          <p className="text-xs text-tg-hint -mt-2">Уведомления о новых заказах будут отправляться в этот чат. Укажите ID группы (-100...) или @username. Если пусто — используется ADMIN_CHAT_ID из .env.</p>
+          <Input
+            label="Чат форума для матчей"
+            placeholder="-1001234567890 или @group_username"
+            value={dailyMatchesForumChatId}
+            onChange={(e) => setDailyMatchesForumChatId(e.target.value)}
+          />
+          <Input
+            label="ID топика (необязательно)"
+            placeholder="Оставьте пустым для General"
+            value={dailyMatchesForumTopicId}
+            onChange={(e) => setDailyMatchesForumTopicId(e.target.value)}
+          />
+          <p className="text-xs text-tg-hint -mt-2">Ежедневно в 12:00 в этот чат отправляется сообщение о матчах на сегодня. Для форума укажите ID конкретного топика или оставьте пустым.</p>
           <Button onClick={handleSave} fullWidth>{saved ? '✓ Сохранено!' : 'Сохранить'}</Button>
         </div>
       )}
@@ -884,6 +944,302 @@ export const AdminSettingsPage: React.FC = () => {
             </Button>
             {settleResult && <p className="text-xs text-tg-hint">{settleResult}</p>}
           </div>
+        </div>
+      )}
+
+      {/* --- Редактирование текстов --- */}
+      {activeSection === 'bot_texts' && (
+        <div className="space-y-4">
+          <h2 className="text-base font-semibold text-tg-text">Редактирование текстов бота</h2>
+          <p className="text-sm text-tg-hint">Настройте сообщения бота. Используйте переменные в фигурных скобках для подстановки данных.</p>
+
+          {(() => {
+            const t = botTemplates ?? {};
+            const vars = (ctx: string) => botVariablesByContext[ctx] ?? [];
+            const insertVar = (key: keyof BotMessageTemplates, field: string, variable: string) => {
+              const block = (t[key] ?? {}) as Record<string, unknown>;
+              const cur = String(block[field] ?? '');
+              updateBotTemplate(key, field, cur + variable);
+            };
+            const styleOptions = [
+              { value: '', label: '—' },
+              { value: 'primary', label: 'Primary' },
+              { value: 'success', label: 'Success' },
+              { value: 'danger', label: 'Danger' },
+            ];
+            return (
+              <>
+                {/* Welcome */}
+                <div className="bg-tg-secondary rounded-xl p-4 space-y-2">
+                  <h3 className="text-sm font-medium text-tg-text">Приветствие (/start)</h3>
+                  <div>
+                    <label className="block text-xs text-tg-hint mb-1">Текст сообщения</label>
+                    <textarea
+                      value={(t.welcome as { text?: string })?.text ?? ''}
+                      onChange={(e) => updateBotTemplate('welcome', 'text', e.target.value)}
+                      maxLength={2000}
+                      rows={2}
+                      className="w-full px-3 py-2 rounded-lg bg-tg-bg text-tg-text text-sm border-none outline-none resize-none"
+                    />
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {vars('welcome').map((v) => (
+                        <button key={v} type="button" onClick={() => insertVar('welcome', 'text', v)} className="text-xs px-2 py-0.5 rounded bg-tg-bg text-tg-link">
+                          {v}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <Input
+                    label="Текст кнопки"
+                    value={(t.welcome as { button_text?: string })?.button_text ?? ''}
+                    onChange={(e) => updateBotTemplate('welcome', 'button_text', e.target.value)}
+                  />
+                  <div>
+                    <label className="block text-xs text-tg-hint mb-1">Стиль кнопки</label>
+                    <select
+                      value={(t.welcome as { button_style?: string })?.button_style ?? 'primary'}
+                      onChange={(e) => updateBotTemplate('welcome', 'button_style', e.target.value || null)}
+                      className="w-full px-3 py-2 rounded-lg bg-tg-bg text-tg-text text-sm border-none outline-none"
+                    >
+                      {styleOptions.map((o) => (
+                        <option key={o.value || '_'} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Product not found */}
+                <div className="bg-tg-secondary rounded-xl p-4 space-y-2">
+                  <h3 className="text-sm font-medium text-tg-text">Товар не найден</h3>
+                  <div>
+                    <label className="block text-xs text-tg-hint mb-1">Текст</label>
+                    <textarea
+                      value={(t.product_not_found as { text?: string })?.text ?? ''}
+                      onChange={(e) => updateBotTemplate('product_not_found', 'text', e.target.value)}
+                      maxLength={2000}
+                      rows={2}
+                      className="w-full px-3 py-2 rounded-lg bg-tg-bg text-tg-text text-sm border-none outline-none resize-none"
+                    />
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {vars('product_not_found').map((v) => (
+                        <button key={v} type="button" onClick={() => insertVar('product_not_found', 'text', v)} className="text-xs px-2 py-0.5 rounded bg-tg-bg text-tg-link">
+                          {v}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Product card */}
+                <div className="bg-tg-secondary rounded-xl p-4 space-y-2">
+                  <h3 className="text-sm font-medium text-tg-text">Карточка товара (deep link)</h3>
+                  <div>
+                    <label className="block text-xs text-tg-hint mb-1">Шаблон сообщения (HTML)</label>
+                    <textarea
+                      value={(t.product as { template?: string })?.template ?? ''}
+                      onChange={(e) => updateBotTemplate('product', 'template', e.target.value)}
+                      maxLength={2000}
+                      rows={6}
+                      className="w-full px-3 py-2 rounded-lg bg-tg-bg text-tg-text text-sm border-none outline-none resize-none font-mono"
+                    />
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {vars('product').map((v) => (
+                        <button key={v} type="button" onClick={() => insertVar('product', 'template', v)} className="text-xs px-2 py-0.5 rounded bg-tg-bg text-tg-link">
+                          {v}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <Input
+                    label="Текст кнопки «Посмотреть товар»"
+                    value={(t.product as { button_product_text?: string })?.button_product_text ?? ''}
+                    onChange={(e) => updateBotTemplate('product', 'button_product_text', e.target.value)}
+                  />
+                  <Input
+                    label="Текст кнопки «Открыть магазин»"
+                    value={(t.product as { button_shop_text?: string })?.button_shop_text ?? ''}
+                    onChange={(e) => updateBotTemplate('product', 'button_shop_text', e.target.value)}
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs text-tg-hint mb-1">Стиль кнопки «Товар»</label>
+                      <select
+                        value={(t.product as { button_product_style?: string })?.button_product_style ?? 'primary'}
+                        onChange={(e) => updateBotTemplate('product', 'button_product_style', e.target.value || null)}
+                        className="w-full px-3 py-2 rounded-lg bg-tg-bg text-tg-text text-sm border-none outline-none"
+                      >
+                        {styleOptions.map((o) => (
+                          <option key={o.value || '_'} value={o.value}>{o.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-tg-hint mb-1">Стиль кнопки «Магазин»</label>
+                      <select
+                        value={(t.product as { button_shop_style?: string })?.button_shop_style ?? ''}
+                        onChange={(e) => updateBotTemplate('product', 'button_shop_style', e.target.value || null)}
+                        className="w-full px-3 py-2 rounded-lg bg-tg-bg text-tg-text text-sm border-none outline-none"
+                      >
+                        {styleOptions.map((o) => (
+                          <option key={o.value || '_'} value={o.value}>{o.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Error */}
+                <div className="bg-tg-secondary rounded-xl p-4 space-y-2">
+                  <h3 className="text-sm font-medium text-tg-text">Ошибка</h3>
+                  <div>
+                    <label className="block text-xs text-tg-hint mb-1">Текст</label>
+                    <textarea
+                      value={(t.error as { text?: string })?.text ?? ''}
+                      onChange={(e) => updateBotTemplate('error', 'text', e.target.value)}
+                      maxLength={2000}
+                      rows={2}
+                      className="w-full px-3 py-2 rounded-lg bg-tg-bg text-tg-text text-sm border-none outline-none resize-none"
+                    />
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {vars('error').map((v) => (
+                        <button key={v} type="button" onClick={() => insertVar('error', 'text', v)} className="text-xs px-2 py-0.5 rounded bg-tg-bg text-tg-link">
+                          {v}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Order status changed */}
+                <div className="bg-tg-secondary rounded-xl p-4 space-y-2">
+                  <h3 className="text-sm font-medium text-tg-text">Уведомление об изменении статуса заказа</h3>
+                  <p className="text-xs text-tg-hint">Отправляется пользователю в боте при смене статуса заказа админом.</p>
+                  <div>
+                    <label className="block text-xs text-tg-hint mb-1">Текст сообщения</label>
+                    <textarea
+                      value={(t.order_status_changed as { text?: string })?.text ?? ''}
+                      onChange={(e) => updateBotTemplate('order_status_changed', 'text', e.target.value)}
+                      maxLength={2000}
+                      rows={2}
+                      className="w-full px-3 py-2 rounded-lg bg-tg-bg text-tg-text text-sm border-none outline-none resize-none"
+                    />
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {vars('order_status_changed').map((v) => (
+                        <button key={v} type="button" onClick={() => insertVar('order_status_changed', 'text', v)} className="text-xs px-2 py-0.5 rounded bg-tg-bg text-tg-link">
+                          {v}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Daily matches */}
+                <div className="bg-tg-secondary rounded-xl p-4 space-y-2">
+                  <h3 className="text-sm font-medium text-tg-text">Ежедневная рассылка матчей</h3>
+                  <p className="text-xs text-tg-hint">Отправляется в 12:00 в чат форума. Настройте чат в разделе «Основные».</p>
+                  <div>
+                    <label className="block text-xs text-tg-hint mb-1">Текст сообщения</label>
+                    <textarea
+                      value={(t.daily_matches as { text?: string })?.text ?? ''}
+                      onChange={(e) => updateBotTemplate('daily_matches', 'text', e.target.value)}
+                      maxLength={2000}
+                      rows={4}
+                      className="w-full px-3 py-2 rounded-lg bg-tg-bg text-tg-text text-sm border-none outline-none resize-none"
+                    />
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {vars('daily_matches').map((v) => (
+                        <button key={v} type="button" onClick={() => insertVar('daily_matches', 'text', v)} className="text-xs px-2 py-0.5 rounded bg-tg-bg text-tg-link">
+                          {v}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-tg-hint mb-1">Кнопки</label>
+                    {(() => {
+                      const dm = (t.daily_matches || {}) as { buttons?: Array<Array<{ text?: string; url?: string; style?: string | null }>> };
+                      const rows = Array.isArray(dm.buttons) ? dm.buttons : [[]];
+                      const styleOpts = [{ value: '', label: '—' }, { value: 'primary', label: 'Primary' }, { value: 'success', label: 'Success' }, { value: 'danger', label: 'Danger' }];
+                      const setButtons = (newRows: Array<Array<{ text: string; url: string; style?: string | null }>>) => {
+                        setBotTemplates((prev) => {
+                          const cur = prev ?? {};
+                          const block = { ...(cur.daily_matches as Record<string, unknown> || {}), buttons: newRows };
+                          return { ...cur, daily_matches: block };
+                        });
+                      };
+                      const updBtn = (ri: number, bi: number, f: string, val: string | null) => {
+                        const newRows = rows.map((r, i) =>
+                          i === ri ? r.map((b, j) => (j === bi ? { ...b, [f]: val || '' } : b)) : r
+                        );
+                        setButtons(newRows as Array<Array<{ text: string; url: string; style?: string | null }>>);
+                      };
+                      const addRow = () => setButtons([...rows, []]);
+                      const addBtn = (ri: number) => {
+                        const newRows = rows.map((r, i) => (i === ri ? [...r, { text: '', url: '', style: null }] : r));
+                        setButtons(newRows);
+                      };
+                      const remBtn = (ri: number, bi: number) => {
+                        const newRows = rows.map((r, i) => (i === ri ? r.filter((_, j) => j !== bi) : r)).filter((r) => r.length > 0);
+                        setButtons(newRows.length ? newRows : [[]]);
+                      };
+                      const remRow = (ri: number) => {
+                        const newRows = rows.filter((_, i) => i !== ri);
+                        setButtons(newRows.length ? newRows : [[]]);
+                      };
+                      return (
+                        <div className="space-y-2">
+                          {rows.map((row, ri) => (
+                            <div key={ri} className="border border-tg-secondary rounded-lg p-2 space-y-1">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs text-tg-hint">Ряд {ri + 1}</span>
+                                <div className="flex gap-1">
+                                  <Button size="sm" type="button" onClick={() => addBtn(ri)}>+ Кнопка</Button>
+                                  <Button size="sm" type="button" variant="secondary" onClick={() => remRow(ri)} disabled={rows.length <= 1}>
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                              {row.map((btn, bi) => (
+                                <div key={bi} className="flex gap-2 flex-wrap items-center bg-tg-bg rounded p-2">
+                                  <input
+                                    placeholder="Текст кнопки"
+                                    value={btn?.text ?? ''}
+                                    onChange={(e) => updBtn(ri, bi, 'text', e.target.value)}
+                                    className="flex-1 min-w-24 px-2 py-1 rounded text-sm text-tg-text bg-tg-secondary"
+                                  />
+                                  <input
+                                    placeholder="URL"
+                                    value={btn?.url ?? ''}
+                                    onChange={(e) => updBtn(ri, bi, 'url', e.target.value)}
+                                    className="flex-1 min-w-24 px-2 py-1 rounded text-sm text-tg-text bg-tg-secondary"
+                                  />
+                                  <select
+                                    value={btn?.style ?? ''}
+                                    onChange={(e) => updBtn(ri, bi, 'style', e.target.value || null)}
+                                    className="px-2 py-1 rounded text-sm text-tg-text bg-tg-secondary w-24"
+                                  >
+                                    {styleOpts.map((o) => (
+                                      <option key={o.value || '_'} value={o.value}>{o.label}</option>
+                                    ))}
+                                  </select>
+                                  <button type="button" onClick={() => remBtn(ri, bi)} className="text-red-500">
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          ))}
+                          <Button size="sm" type="button" onClick={addRow}>+ Новый ряд</Button>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+
+                <Button onClick={handleSave} fullWidth>{saved ? '✓ Сохранено!' : 'Сохранить'}</Button>
+              </>
+            );
+          })()}
         </div>
       )}
 

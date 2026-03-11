@@ -260,7 +260,6 @@ async def create_order(
         tx = BonusTransaction(user_id=user.id, amount=-bonus_used, kind="spend", order_id=order.id)
         db.add(tx)
 
-    items_text_parts = []
     for cart_item in cart_items:
         order_item = OrderItem(
             order_id=order.id,
@@ -271,16 +270,6 @@ async def create_order(
             modification_value=cart_item.modification_value,
         )
         db.add(order_item)
-        label = (
-            f" ({cart_item.modification_type.name}: {cart_item.modification_value})"
-            if cart_item.modification_type_id and cart_item.modification_value
-            and getattr(cart_item, "modification_type", None)
-            else ""
-        )
-        items_text_parts.append(
-            f"  • {cart_item.product.name}{label} x{cart_item.quantity} — "
-            f"{float(cart_item.product.price) * cart_item.quantity:.2f} ₽"
-        )
 
         if cart_item.modification_type_id and cart_item.modification_value:
             var_result = await db.execute(
@@ -305,30 +294,23 @@ async def create_order(
     await db.commit()
     await db.refresh(order)
 
-    # Notify admin
-    try:
-        await notify_new_order(
-            order_id=order.id,
-            customer_name=data.customer_name,
-            customer_phone=data.customer_phone,
-            address=data.address,
-            delivery_type=data.delivery_type,
-            total=float(order.total),
-            items_text="\n".join(items_text_parts),
-            bonus_used=float(order.bonus_used or 0),
-        )
-    except Exception:
-        pass  # Don't fail order if notification fails
-
+    # Load order with relationships for notification and response
     result = await db.execute(
         select(Order)
         .where(Order.id == order.id)
         .options(
+            selectinload(Order.promo_code),
             selectinload(Order.items).selectinload(OrderItem.product),
             selectinload(Order.items).selectinload(OrderItem.modification_type),
         )
     )
     order = result.scalar_one()
+
+    # Notify admin
+    try:
+        await notify_new_order(db=db, user=user, order=order)
+    except Exception:
+        pass  # Don't fail order if notification fails
 
     return _order_to_response(order)
 

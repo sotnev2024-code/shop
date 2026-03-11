@@ -62,6 +62,17 @@ async def _periodic_sync():
         logger.error(f"Periodic product sync failed: {e}", exc_info=True)
 
 
+async def _daily_matches_job():
+    """Background job: send daily matches to forum at 12:00."""
+    try:
+        from app.db.session import async_session
+        from app.services.daily_matches_service import send_daily_matches
+        async with async_session() as db:
+            await send_daily_matches(db)
+    except Exception as e:
+        logger.error("Daily matches job failed: %s", e, exc_info=True)
+
+
 async def _ensure_tables():
     """Create missing tables on startup (idempotent)."""
     from app.db.base import Base
@@ -195,6 +206,13 @@ async def lifespan(application: FastAPI):
             scheduler.add_job(_periodic_sync, "interval", minutes=interval, id="product_sync")
             scheduler.start()
             logger.info(f"Periodic sync scheduler started: every {interval} minutes")
+
+    # Daily matches job (12:00) when bot is configured
+    if is_bot_configured():
+        scheduler.add_job(_daily_matches_job, "cron", hour=12, minute=0, id="daily_matches")
+        if not scheduler.running:
+            scheduler.start()
+            logger.info("Scheduler started (daily matches at 12:00)")
 
     yield
     # Shutdown

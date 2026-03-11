@@ -3,6 +3,7 @@ import type {
   AdminPost,
   AppConfig,
   Banner,
+  BotTemplateDefaultsResponse,
   BulkPriceRequest,
   BulkPriceResponse,
   CartResponse,
@@ -226,6 +227,8 @@ export interface MailingPayload {
 export const adminSendMailing = (data: MailingPayload) =>
   api.post<{ sent: number; failed: number; total: number }>('/admin/mailing', data);
 export const adminGetSettings = () => api.get('/admin/settings');
+export const adminGetBotTemplateDefaults = () =>
+  api.get<BotTemplateDefaultsResponse>('/admin/bot-templates/defaults');
 export const adminUpdateSettings = (data: any) =>
   api.patch('/admin/settings', data);
 

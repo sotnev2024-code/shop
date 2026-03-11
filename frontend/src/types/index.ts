@@ -16,6 +16,7 @@ export interface AppConfig {
   current_telegram_id?: number | null;
   bot_photo_url: string | null;
   bot_username: string | null;
+  webapp_url: string | null;
   store_address: string | null;
   delivery_city: string | null;
   delivery_cost: number;
@@ -246,6 +247,52 @@ export interface AdminPost {
   channel_id: string | null;
   created_at: string;
   updated_at: string;
+}
+
+/** Bot message template config per context ( welcome, product_not_found, product, error ) */
+export interface BotMessageTemplateWelcome {
+  text: string;
+  button_text: string;
+  button_style?: string | null;
+}
+
+export interface BotMessageTemplateProductNotFound {
+  text: string;
+}
+
+export interface BotMessageTemplateProduct {
+  template: string;
+  button_product_text: string;
+  button_shop_text: string;
+  button_product_style?: string | null;
+  button_shop_style?: string | null;
+}
+
+export interface BotMessageTemplateError {
+  text: string;
+}
+
+export interface BotMessageTemplateOrderStatusChanged {
+  text: string;
+}
+
+export interface BotMessageTemplateDailyMatches {
+  text: string;
+  buttons?: Array<Array<{ text: string; url: string; style?: string | null }>>;
+}
+
+export interface BotMessageTemplates {
+  welcome?: BotMessageTemplateWelcome;
+  product_not_found?: BotMessageTemplateProductNotFound;
+  product?: BotMessageTemplateProduct;
+  error?: BotMessageTemplateError;
+  order_status_changed?: BotMessageTemplateOrderStatusChanged;
+  daily_matches?: BotMessageTemplateDailyMatches;
+}
+
+export interface BotTemplateDefaultsResponse {
+  templates: BotMessageTemplates;
+  variables_by_context: Record<string, string[]>;
 }
 
 export interface PromoCode {

@@ -59,6 +59,17 @@ class AppConfig(Base):
     # --- Channel for posts: numeric ID (-100...) or @username ---
     channel_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, default=None)
 
+    # --- Chat for order notifications: numeric ID (-100...) or @username ---
+    order_notification_chat_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, default=None)
+
+    # --- Forum for daily matches: numeric ID (-100...) or @username ---
+    daily_matches_forum_chat_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, default=None)
+    # Optional: message_thread_id for specific topic (int as string)
+    daily_matches_forum_topic_id: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, default=None)
+
+    # --- Bot message templates (admin-editable, JSON) ---
+    bot_message_templates: Mapped[Optional[str]] = mapped_column(Text, nullable=True, default=None)
+
     # --- Bonus system (admin-editable) ---
     bonus_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     bonus_welcome_enabled: Mapped[bool] = mapped_column(Boolean, default=False)

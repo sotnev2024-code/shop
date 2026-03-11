@@ -27,10 +27,15 @@ const resolveImageUrl = (url: string | null): string => {
   return `${window.location.origin}${url}`;
 };
 
-const buildProductDeeplink = (productId: number): string => {
-  const botUsername = useConfigStore.getState().config?.bot_username;
-  if (!botUsername) return `/product/${productId}`;
-  return `https://t.me/${botUsername}?start=product_${productId}`;
+const buildProductUrl = (productId: number): string => {
+  const webappUrl = useConfigStore.getState().config?.webapp_url;
+  const base = (webappUrl || '').replace(/\/$/, '') || window.location.origin;
+  return `${base}/product/${productId}`;
+};
+
+const buildShopUrl = (): string => {
+  const webappUrl = useConfigStore.getState().config?.webapp_url;
+  return (webappUrl || '').replace(/\/$/, '') || window.location.origin;
 };
 
 export const AdminPostsPage: React.FC = () => {
@@ -114,7 +119,7 @@ export const AdminPostsPage: React.FC = () => {
       if (lastAutoFilledProductId.current !== p.id) {
         lastAutoFilledProductId.current = p.id;
         setButtonText('Перейти к товару');
-        setButtonUrl(buildProductDeeplink(p.id));
+        setButtonUrl(buildProductUrl(p.id));
       }
     }
   }, [productId, products, useProductPhoto]);
@@ -188,7 +193,7 @@ export const AdminPostsPage: React.FC = () => {
       : resolveImageUrl(selectedProduct.image_url))
     : '');
 
-  const displayButtonUrl = buttonUrl || (selectedProduct ? buildProductDeeplink(selectedProduct.id) : '');
+  const displayButtonUrl = buttonUrl || (selectedProduct ? buildProductUrl(selectedProduct.id) : buildShopUrl());
   const displayButtonText = buttonText || 'Перейти к товару';
 
   const colorClass = BUTTON_COLORS.find((c) => c.value === buttonColor)?.class ?? 'bg-blue-500';

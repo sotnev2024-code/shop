@@ -23,6 +23,7 @@ class AppConfigResponse(BaseModel):
     current_telegram_id: Optional[int] = None  # for debugging / admin panel
     bot_photo_url: Optional[str] = None
     bot_username: Optional[str] = None
+    webapp_url: Optional[str] = None
     store_address: Optional[str] = None
     delivery_city: Optional[str] = None
     delivery_cost: float = 0
