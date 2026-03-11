@@ -21,7 +21,7 @@ import {
   adminGetErrorLogs,
   adminGetErrorLogDetail,
 } from '../api/endpoints';
-import type { Category, ErrorLog, ModificationType, Product, BotMessageTemplates, BotTemplateDefaultsResponse } from '../types';
+import type { Category, ErrorLog, ModificationType, Product, BotMessageTemplates, BotMessageTemplateDailyMatches, BotTemplateDefaultsResponse } from '../types';
 import type { BulkPriceScope, BulkPriceOperation } from '../types';
 import { useConfigStore } from '../store/configStore';
 import { Button } from '../components/ui/Button';
@@ -253,7 +253,7 @@ export const AdminSettingsPage: React.FC = () => {
   ) => {
     setBotTemplates((prev) => {
       const current = prev ?? {};
-      const block = { ...(current[key] as Record<string, unknown>) };
+      const block = { ...(current[key] as unknown as Record<string, unknown>) };
       (block as Record<string, unknown>)[field] = value;
       return { ...current, [key]: block };
     });
@@ -1157,21 +1157,24 @@ export const AdminSettingsPage: React.FC = () => {
                   <div>
                     <label className="block text-xs text-tg-hint mb-1">Кнопки</label>
                     {(() => {
-                      const dm = (t.daily_matches || {}) as { buttons?: Array<Array<{ text?: string; url?: string; style?: string | null }>> };
-                      const rows = Array.isArray(dm.buttons) ? dm.buttons : [[]];
+                      type Btn = { text: string; url: string; style?: string | null };
+                      const dm = (t.daily_matches || {}) as { buttons?: Array<Array<Btn>> };
+                      const rows: Btn[][] = Array.isArray(dm.buttons) && dm.buttons.length > 0
+                        ? dm.buttons.map((r) => r.map((b) => ({ text: b.text ?? '', url: b.url ?? '', style: b.style ?? null })))
+                        : [[]];
                       const styleOpts = [{ value: '', label: '—' }, { value: 'primary', label: 'Primary' }, { value: 'success', label: 'Success' }, { value: 'danger', label: 'Danger' }];
-                      const setButtons = (newRows: Array<Array<{ text: string; url: string; style?: string | null }>>) => {
+                      const setButtons = (newRows: Btn[][]) => {
                         setBotTemplates((prev) => {
                           const cur = prev ?? {};
-                          const block = { ...(cur.daily_matches as Record<string, unknown> || {}), buttons: newRows };
+                          const block: BotMessageTemplateDailyMatches = { text: cur.daily_matches?.text ?? '', buttons: newRows };
                           return { ...cur, daily_matches: block };
                         });
                       };
                       const updBtn = (ri: number, bi: number, f: string, val: string | null) => {
                         const newRows = rows.map((r, i) =>
-                          i === ri ? r.map((b, j) => (j === bi ? { ...b, [f]: val || '' } : b)) : r
+                          i === ri ? r.map((b, j) => (j === bi ? { ...b, [f]: val ?? '' } : b)) : r
                         );
-                        setButtons(newRows as Array<Array<{ text: string; url: string; style?: string | null }>>);
+                        setButtons(newRows);
                       };
                       const addRow = () => setButtons([...rows, []]);
                       const addBtn = (ri: number) => {
