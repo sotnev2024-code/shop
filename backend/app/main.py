@@ -40,6 +40,7 @@ from app.api.v1 import (
     banners,
     user as user_router,
     football,
+    errors as errors_router,
 )
 
 UPLOADS_DIR = Path(__file__).resolve().parent.parent / "uploads"
@@ -60,6 +61,13 @@ async def _periodic_sync():
         logger.info(f"Periodic sync complete: {synced} products synced from {settings.product_source.value}")
     except Exception as e:
         logger.error(f"Periodic product sync failed: {e}", exc_info=True)
+        try:
+            from app.db.session import async_session
+            from app.services.error_log_service import log_error, format_exception_traceback
+            async with async_session() as db:
+                await log_error(db, str(e), "ERROR", path="job:sync", source="job", traceback_str=format_exception_traceback(e))
+        except Exception:
+            pass
 
 
 async def _daily_matches_job():
@@ -71,6 +79,13 @@ async def _daily_matches_job():
             await send_daily_matches(db)
     except Exception as e:
         logger.error("Daily matches job failed: %s", e, exc_info=True)
+        try:
+            from app.db.session import async_session
+            from app.services.error_log_service import log_error, format_exception_traceback
+            async with async_session() as db:
+                await log_error(db, str(e), "ERROR", path="job:daily_matches", source="job", traceback_str=format_exception_traceback(e))
+        except Exception:
+            pass
 
 
 async def _autopost_job():
@@ -102,6 +117,13 @@ async def _autopost_job():
                 await run_autopost(db)
     except Exception as e:
         logger.error("Autopost job failed: %s", e, exc_info=True)
+        try:
+            from app.db.session import async_session
+            from app.services.error_log_service import log_error, format_exception_traceback
+            async with async_session() as db:
+                await log_error(db, str(e), "ERROR", path="job:autopost", source="job", traceback_str=format_exception_traceback(e))
+        except Exception:
+            pass
 
 
 async def _ensure_tables():
@@ -123,11 +145,28 @@ async def _ensure_tables():
         raise
 
 
+async def _log_async_error(message: str, source: str, tb_parts: list):
+    """Log error to DB from async context."""
+    try:
+        from app.db.session import async_session
+        from app.services.error_log_service import log_error
+        tb_str = "".join(tb_parts)[:8000] if tb_parts else ""
+        async with async_session() as db:
+            await log_error(db, message, "ERROR", path=source, source=source, traceback_str=tb_str)
+    except Exception as e:
+        logger.debug("Error logging to DB failed: %s", e)
+
+
 def _asyncio_exception_handler(loop, context):
-    """Log unhandled task exceptions (e.g. from bot polling) so they don't spam 'never retrieved'."""
+    """Log unhandled task exceptions (e.g. from bot polling) to DB and logger."""
     exc = context.get("exception")
     if exc is not None:
         logger.warning("Async task error (bot/background): %s", exc, exc_info=exc)
+        try:
+            tb_parts = traceback.format_exception(type(exc), exc, exc.__traceback__)
+            asyncio.create_task(_log_async_error(str(exc), "async_task", tb_parts))
+        except Exception as e:
+            logger.debug("Could not schedule error log task: %s", e)
     else:
         logger.warning("Async context: %s", context)
 
@@ -152,6 +191,7 @@ async def _log_error_to_db(
 
     extra = {
         "query_params": dict(request.query_params),
+        "source": "api",
     }
 
     # Reuse standard DB dependency to avoid duplicating engine/session creation
@@ -283,6 +323,7 @@ app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 
 # API routes
 app.include_router(config.router, prefix="/api/v1", tags=["config"])
+app.include_router(errors_router.router, prefix="/api/v1", tags=["errors"])
 app.include_router(user_router.router, prefix="/api/v1/user", tags=["user"])
 app.include_router(products.router, prefix="/api/v1", tags=["products"])
 app.include_router(categories.router, prefix="/api/v1", tags=["categories"])

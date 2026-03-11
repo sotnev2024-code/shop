@@ -76,7 +76,26 @@ async def fetch_and_cache_bot_photo():
 
 async def setup_bot():
     """Register all handlers and setup bot commands."""
+    from aiogram.types import ErrorEvent
     from app.bot.handlers import start, orders as order_handlers
+    from app.db.session import async_session
+    from app.services.error_log_service import log_error, format_exception_traceback
+
+    @dp.error()
+    async def bot_error_handler(event: ErrorEvent):
+        exc = event.exception
+        logger.exception("Bot handler error: %s", exc)
+        try:
+            async with async_session() as db:
+                await log_error(
+                    db, str(exc), "ERROR",
+                    path="bot", source="bot",
+                    traceback_str=format_exception_traceback(exc),
+                    extra={},
+                )
+        except Exception as log_exc:
+            logger.debug("Failed to log bot error to DB: %s", log_exc)
+
     dp.include_router(start.router)
     dp.include_router(order_handlers.router)
 

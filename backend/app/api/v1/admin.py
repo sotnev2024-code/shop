@@ -186,6 +186,17 @@ async def admin_get_error_log_detail(
     }
 
 
+@router.delete("/error-logs")
+async def admin_delete_error_logs(
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """Delete all error logs."""
+    result = await db.execute(delete(ErrorLog))
+    await db.commit()
+    return {"ok": True, "deleted": result.rowcount}
+
+
 # ---- Orders management ----
 
 @router.get("/orders", response_model=OrderListResponse)

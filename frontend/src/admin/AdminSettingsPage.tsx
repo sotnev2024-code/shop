@@ -20,6 +20,7 @@ import {
   adminSettlePendingBets,
   adminGetErrorLogs,
   adminGetErrorLogDetail,
+  adminDeleteErrorLogs,
 } from '../api/endpoints';
 import type { Category, ErrorLog, ModificationType, Product, BotMessageTemplates, BotMessageTemplateDailyMatches, BotTemplateDefaultsResponse } from '../types';
 import type { BulkPriceScope, BulkPriceOperation } from '../types';
@@ -119,6 +120,7 @@ export const AdminSettingsPage: React.FC = () => {
   // --- Error logs state ---
   const [errorLogs, setErrorLogs] = useState<ErrorLog[]>([]);
   const [errorLogsLoading, setErrorLogsLoading] = useState(false);
+  const [errorLogsDeleting, setErrorLogsDeleting] = useState(false);
   const [selectedErrorLog, setSelectedErrorLog] = useState<any | null>(null);
 
   type SettingsSection =
@@ -1879,11 +1881,27 @@ export const AdminSettingsPage: React.FC = () => {
       {/* --- Логи ошибок --- */}
       {activeSection === 'errors' && (
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-base font-semibold text-tg-text">Логи ошибок</h2>
-          <Button size="sm" onClick={fetchErrorLogs} disabled={errorLogsLoading}>
-            {errorLogsLoading ? 'Загрузка…' : 'Обновить'}
-          </Button>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={fetchErrorLogs} disabled={errorLogsLoading}>
+              {errorLogsLoading ? 'Загрузка…' : 'Обновить'}
+            </Button>
+            <Button size="sm" variant="danger" onClick={async () => {
+              if (!confirm('Удалить всю историю ошибок?')) return;
+              setErrorLogsDeleting(true);
+              try {
+                await adminDeleteErrorLogs();
+                setErrorLogs([]);
+                setSelectedErrorLog(null);
+              } catch {
+                alert('Не удалось удалить логи');
+              }
+              setErrorLogsDeleting(false);
+            }} disabled={errorLogsDeleting || errorLogs.length === 0}>
+              {errorLogsDeleting ? 'Удаление…' : 'Удалить историю'}
+            </Button>
+          </div>
         </div>
 
         {errorLogs.length === 0 && !errorLogsLoading && (
@@ -1911,7 +1929,7 @@ export const AdminSettingsPage: React.FC = () => {
                     {new Date(log.created_at).toLocaleString()}
                   </span>
                   <span className="text-xs font-mono">
-                    {log.method} {log.path} ({log.status_code ?? '-'})
+                    {log.method ? `${log.method} ` : ''}{log.path || '—'} {log.status_code != null ? `(${log.status_code})` : ''}
                   </span>
                 </div>
                 <div className="text-xs line-clamp-1 mt-1">{log.message}</div>
@@ -1930,8 +1948,9 @@ export const AdminSettingsPage: React.FC = () => {
             </div>
             <div className="mb-2 space-y-1">
               <div><strong>Время:</strong> {new Date(selectedErrorLog.created_at).toLocaleString()}</div>
-              <div><strong>Запрос:</strong> {selectedErrorLog.method} {selectedErrorLog.path}</div>
-              <div><strong>Статус:</strong> {selectedErrorLog.status_code}</div>
+              <div><strong>Источник:</strong> {selectedErrorLog.path || selectedErrorLog.extra?.source || '—'}</div>
+              {selectedErrorLog.method && <div><strong>Запрос:</strong> {selectedErrorLog.method} {selectedErrorLog.path}</div>}
+              {selectedErrorLog.status_code != null && <div><strong>Статус:</strong> {selectedErrorLog.status_code}</div>}
               <div><strong>Сообщение:</strong> {selectedErrorLog.message}</div>
             </div>
             {selectedErrorLog.traceback && (

@@ -120,6 +120,9 @@ export const adminUpdateOrder = (id: number, data: { status: string; tracking_nu
 export const adminGetErrorLogs = (limit = 100) =>
   api.get<ErrorLog[]>('/admin/error-logs', { params: { limit } });
 
+export const adminDeleteErrorLogs = () =>
+  api.delete<{ ok: boolean; deleted: number }>('/admin/error-logs');
+
 export const adminGetErrorLogDetail = (id: number) =>
   api.get(`/admin/error-logs/${id}`);
 export const adminGetProducts = (params?: {
