@@ -38,6 +38,21 @@ def _build_shop_deeplink() -> str:
     return f"https://t.me/{username}?start=start"
 
 
+def _color_to_style(button_color: Optional[str]) -> Optional[str]:
+    """Map our color names to aiogram InlineKeyboardButton style (primary, success, danger)."""
+    if not button_color:
+        return None
+    c = str(button_color).lower()
+    if c == "blue":
+        return "primary"
+    if c == "green":
+        return "success"
+    if c == "red":
+        return "danger"
+    # gray or other — omit style (app-specific default)
+    return None
+
+
 async def send_post_to_channel(
     channel_id: str,
     text: str,
@@ -45,6 +60,7 @@ async def send_post_to_channel(
     photo_file_id: Optional[str] = None,
     button_text: Optional[str] = None,
     button_url: Optional[str] = None,
+    button_color: Optional[str] = None,
 ) -> int:
     """
     Send a post to a Telegram channel.
@@ -63,11 +79,9 @@ async def send_post_to_channel(
     btn_text = (button_text or "").strip()
     btn_url = (button_url or "").strip()
     if btn_text and btn_url:
-        reply_markup = InlineKeyboardMarkup(
-            inline_keyboard=[
-                [InlineKeyboardButton(text=btn_text, url=btn_url)]
-            ]
-        )
+        style = _color_to_style(button_color)
+        btn = InlineKeyboardButton(text=btn_text, url=btn_url, style=style)
+        reply_markup = InlineKeyboardMarkup(inline_keyboard=[[btn]])
 
     abs_photo = _absolute_photo_url(photo_url) if photo_url else None
 

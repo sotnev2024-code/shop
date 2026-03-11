@@ -182,6 +182,7 @@ async def admin_send_post(
             photo_file_id=post.photo_file_id,
             button_text=button_text,
             button_url=button_url,
+            button_color=post.button_color,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
