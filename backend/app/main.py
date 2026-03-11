@@ -254,9 +254,9 @@ async def health_check():
 
 @app.exception_handler(FastAPIHTTPException)
 async def http_exception_handler(request: Request, exc: FastAPIHTTPException):
-    # Логируем только серверные ошибки; 4xx оставляем как есть
-    if exc.status_code >= 500:
-        await _log_error_to_db(request, exc, status_code=exc.status_code, level="ERROR")
+    # Логируем все HTTPException (и 4xx, и 5xx), чтобы видеть любые ошибки в админке.
+    level = "ERROR" if exc.status_code >= 500 else "WARNING"
+    await _log_error_to_db(request, exc, status_code=exc.status_code, level=level)
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
 
