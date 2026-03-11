@@ -281,10 +281,10 @@ async def lifespan(application: FastAPI):
     # Daily matches + autopost jobs when bot is configured
     if is_bot_configured():
         scheduler.add_job(_daily_matches_job, "cron", hour=12, minute=0, id="daily_matches")
-        scheduler.add_job(_autopost_job, "interval", minutes=5, id="autopost")
+        scheduler.add_job(_autopost_job, "interval", minutes=1, id="autopost")
         if not scheduler.running:
             scheduler.start()
-            logger.info("Scheduler started (daily matches, autopost every 5 min)")
+            logger.info("Scheduler started (daily matches, autopost every 1 min)")
 
     yield
     # Shutdown
