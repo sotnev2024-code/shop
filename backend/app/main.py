@@ -111,7 +111,10 @@ async def _autopost_job():
             posts_per_day = max(1, min(10, getattr(config, "autopost_posts_per_day", 2) or 2))
             times = times[:posts_per_day] if isinstance(times, list) else []
 
-            now = datetime.now()
+            # Moscow time (UTC+3)
+            from datetime import timedelta, timezone
+            moscow_tz = timezone(timedelta(hours=3))
+            now = datetime.now(moscow_tz)
             current = now.strftime("%H:%M")
             if current in times:
                 await run_autopost(db)
