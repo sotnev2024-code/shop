@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -75,7 +75,7 @@ def _fill_post_from_product(post_data: dict, product: Product) -> dict:
     return data
 
 
-@router.get("/posts", response_model=PostListResponse)
+@router.get("", response_model=PostListResponse)
 async def admin_list_posts(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
@@ -101,7 +101,7 @@ async def admin_list_posts(
     )
 
 
-@router.post("/posts", response_model=PostResponse)
+@router.post("", response_model=PostResponse)
 async def admin_create_post(
     data: PostCreate,
     db: AsyncSession = Depends(get_db),
@@ -126,7 +126,7 @@ async def admin_create_post(
     return PostResponse.model_validate(post)
 
 
-@router.get("/posts/{post_id}", response_model=PostResponse)
+@router.get("/{post_id}", response_model=PostResponse)
 async def admin_get_post(
     post_id: int,
     db: AsyncSession = Depends(get_db),
@@ -140,7 +140,7 @@ async def admin_get_post(
     return PostResponse.model_validate(post)
 
 
-@router.post("/posts/{post_id}/send")
+@router.post("/{post_id}/send")
 async def admin_send_post(
     post_id: int,
     db: AsyncSession = Depends(get_db),
@@ -189,7 +189,7 @@ async def admin_send_post(
         logger.exception("Failed to send post to channel: %s", e)
         raise HTTPException(status_code=500, detail=f"Failed to send: {e}")
 
-    post.sent_at = func.now()
+    post.sent_at = datetime.now(timezone.utc)
     post.message_id = message_id
     post.channel_id = channel_id
     await db.commit()
@@ -202,7 +202,7 @@ async def admin_send_post(
     }
 
 
-@router.post("/posts/upload-image")
+@router.post("/upload-image")
 async def admin_upload_post_image(
     file: UploadFile = File(...),
     admin: User = Depends(get_admin_user),
