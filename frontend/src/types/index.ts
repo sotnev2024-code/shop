@@ -35,6 +35,16 @@ export interface AppConfig {
   bonus_spend_limit_value: number;
 }
 
+export interface ErrorLog {
+  id: number;
+  created_at: string;
+  level: string;
+  message: string;
+  path: string | null;
+  method: string | null;
+  status_code: number | null;
+}
+
 export interface ProductMedia {
   id: number;
   media_type: 'image' | 'video';

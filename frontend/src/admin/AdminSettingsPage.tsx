@@ -1,14 +1,26 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Plus, Trash2, Edit, Check, X, ChevronUp, ChevronDown, ChevronRight } from 'lucide-react';
 import {
-  adminGetSettings, adminUpdateSettings,
-  adminGetCategories, adminCreateCategory, adminUpdateCategory, adminDeleteCategory, adminUploadCategoryImage,
-  adminGetModificationTypes, adminCreateModificationType, adminUpdateModificationType, adminDeleteModificationType,
-  adminAddModificationTypeValue, adminDeleteModificationTypeValue,
-  adminGetProducts, adminBulkPriceUpdate,
+  adminGetSettings,
+  adminUpdateSettings,
+  adminGetCategories,
+  adminCreateCategory,
+  adminUpdateCategory,
+  adminDeleteCategory,
+  adminUploadCategoryImage,
+  adminGetModificationTypes,
+  adminCreateModificationType,
+  adminUpdateModificationType,
+  adminDeleteModificationType,
+  adminAddModificationTypeValue,
+  adminDeleteModificationTypeValue,
+  adminGetProducts,
+  adminBulkPriceUpdate,
   adminSettlePendingBets,
+  adminGetErrorLogs,
+  adminGetErrorLogDetail,
 } from '../api/endpoints';
-import type { Category, ModificationType, Product } from '../types';
+import type { Category, ErrorLog, ModificationType, Product } from '../types';
 import type { BulkPriceScope, BulkPriceOperation } from '../types';
 import { useConfigStore } from '../store/configStore';
 import { Button } from '../components/ui/Button';
@@ -88,7 +100,21 @@ export const AdminSettingsPage: React.FC = () => {
   const [settleLoading, setSettleLoading] = useState(false);
   const [settleResult, setSettleResult] = useState('');
 
-  type SettingsSection = 'general' | 'admins' | 'delivery' | 'banners' | 'bonuses' | 'categories' | 'modifications' | 'bulk';
+  // --- Error logs state ---
+  const [errorLogs, setErrorLogs] = useState<ErrorLog[]>([]);
+  const [errorLogsLoading, setErrorLogsLoading] = useState(false);
+  const [selectedErrorLog, setSelectedErrorLog] = useState<any | null>(null);
+
+  type SettingsSection =
+    | 'general'
+    | 'admins'
+    | 'delivery'
+    | 'banners'
+    | 'bonuses'
+    | 'categories'
+    | 'modifications'
+    | 'bulk'
+    | 'errors';
   const [activeSection, setActiveSection] = useState<SettingsSection>('general');
 
   const sections: { id: SettingsSection; label: string }[] = [
@@ -100,6 +126,7 @@ export const AdminSettingsPage: React.FC = () => {
     { id: 'categories', label: 'Категории' },
     { id: 'modifications', label: 'Модификации' },
     { id: 'bulk', label: 'Массовые цены' },
+    { id: 'errors', label: 'Ошибки' },
   ];
 
   useEffect(() => {
@@ -115,6 +142,17 @@ export const AdminSettingsPage: React.FC = () => {
     return adminGetCategories().then(({ data }) => {
       setCategories(data.sort((a, b) => a.sort_order - b.sort_order));
     });
+  };
+
+  const fetchErrorLogs = async () => {
+    setErrorLogsLoading(true);
+    try {
+      const { data } = await adminGetErrorLogs(100);
+      setErrorLogs(data);
+    } catch {
+      alert('Не удалось загрузить логи ошибок');
+    }
+    setErrorLogsLoading(false);
   };
 
   // Полный плоский список (для массовых цен и др.): корни + все дети
@@ -1363,6 +1401,77 @@ export const AdminSettingsPage: React.FC = () => {
         <Button onClick={handleBulkApply} fullWidth disabled={bulkLoading}>
           {bulkLoading ? 'Применяем…' : 'Применить'}
         </Button>
+      </div>
+      )}
+
+      {/* --- Логи ошибок --- */}
+      {activeSection === 'errors' && (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold text-tg-text">Логи ошибок</h2>
+          <Button size="sm" onClick={fetchErrorLogs} disabled={errorLogsLoading}>
+            {errorLogsLoading ? 'Загрузка…' : 'Обновить'}
+          </Button>
+        </div>
+
+        {errorLogs.length === 0 && !errorLogsLoading && (
+          <p className="text-sm text-tg-hint">Пока нет записей об ошибках.</p>
+        )}
+
+        {errorLogs.length > 0 && (
+          <div className="border border-tg-secondary rounded-xl overflow-hidden max-h-96 overflow-y-auto text-sm">
+            {errorLogs.map((log) => (
+              <button
+                key={log.id}
+                type="button"
+                className="w-full text-left px-3 py-2 border-b border-tg-secondary/40 hover:bg-tg-secondary/60"
+                onClick={async () => {
+                  try {
+                    const { data } = await adminGetErrorLogDetail(log.id);
+                    setSelectedErrorLog(data);
+                  } catch {
+                    alert('Не удалось загрузить детали ошибки');
+                  }
+                }}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-tg-hint">
+                    {new Date(log.created_at).toLocaleString()}
+                  </span>
+                  <span className="text-xs font-mono">
+                    {log.method} {log.path} ({log.status_code ?? '-'})
+                  </span>
+                </div>
+                <div className="text-xs line-clamp-1 mt-1">{log.message}</div>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {selectedErrorLog && (
+          <div className="mt-4 p-3 border border-tg-secondary rounded-xl bg-tg-secondary/40 text-xs whitespace-pre-wrap">
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-semibold">Детали ошибки #{selectedErrorLog.id}</span>
+              <Button size="xs" variant="outline" onClick={() => setSelectedErrorLog(null)}>
+                Закрыть
+              </Button>
+            </div>
+            <div className="mb-2 space-y-1">
+              <div><strong>Время:</strong> {new Date(selectedErrorLog.created_at).toLocaleString()}</div>
+              <div><strong>Запрос:</strong> {selectedErrorLog.method} {selectedErrorLog.path}</div>
+              <div><strong>Статус:</strong> {selectedErrorLog.status_code}</div>
+              <div><strong>Сообщение:</strong> {selectedErrorLog.message}</div>
+            </div>
+            {selectedErrorLog.traceback && (
+              <>
+                <div className="font-semibold mb-1">Traceback:</div>
+                <code className="block text-[11px] overflow-x-auto">
+                  {selectedErrorLog.traceback}
+                </code>
+              </>
+            )}
+          </div>
+        )}
       </div>
       )}
     </div>

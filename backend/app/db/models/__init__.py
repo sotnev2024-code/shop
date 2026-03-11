@@ -14,6 +14,7 @@ from app.db.models.banner import Banner
 from app.db.models.bonus_transaction import BonusTransaction
 from app.db.models.competition_bet import CompetitionBet
 from app.db.models.competition_accrual import CompetitionAccrual
+from app.db.models.error_log import ErrorLog
 
 __all__ = [
     "User",
@@ -33,5 +34,6 @@ __all__ = [
     "BonusTransaction",
     "CompetitionBet",
     "CompetitionAccrual",
+    "ErrorLog",
 ]
 

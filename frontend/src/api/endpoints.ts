@@ -16,6 +16,7 @@ import type {
   PromoCheckResponse,
   PromoCode,
   Stats,
+  ErrorLog,
 } from '../types';
 
 // Config
@@ -113,6 +114,12 @@ export const adminGetOrders = (params?: { status?: string; page?: number }) =>
   api.get<OrderListResponse>('/admin/orders', { params });
 export const adminUpdateOrder = (id: number, data: { status: string; tracking_number?: string }) =>
   api.patch<Order>(`/admin/orders/${id}`, data);
+
+export const adminGetErrorLogs = (limit = 100) =>
+  api.get<ErrorLog[]>('/admin/error-logs', { params: { limit } });
+
+export const adminGetErrorLogDetail = (id: number) =>
+  api.get(`/admin/error-logs/${id}`);
 export const adminGetProducts = (params?: {
   page?: number;
   per_page?: number;

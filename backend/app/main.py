@@ -1,16 +1,21 @@
 import asyncio
 import logging
 import os
+import traceback
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import HTTPException as FastAPIHTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.config import settings, ProductSource
 from app.bot.bot import get_bot, dp, setup_bot, is_bot_configured
+from app.db.session import get_db
+from app.db.models.error_log import ErrorLog
 
 try:
     from aiogram.exceptions import TelegramNetworkError
@@ -83,6 +88,51 @@ def _asyncio_exception_handler(loop, context):
         logger.warning("Async task error (bot/background): %s", exc, exc_info=exc)
     else:
         logger.warning("Async context: %s", context)
+
+
+async def _log_error_to_db(
+    request: Request,
+    exc: Exception,
+    status_code: int,
+    level: str = "ERROR",
+) -> None:
+    """Persist error details to DB so they are visible from admin UI."""
+    try:
+        body_bytes = await request.body()
+        body = body_bytes.decode("utf-8", errors="ignore")
+    except Exception:
+        body = ""
+
+    tb = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))[:8000]
+
+    client_ip = request.client.host if request.client else None
+    ua = request.headers.get("user-agent")
+
+    extra = {
+        "query_params": dict(request.query_params),
+    }
+
+    # Reuse standard DB dependency to avoid duplicating engine/session creation
+    async for db in get_db():
+        try:
+            log = ErrorLog(
+                level=level,
+                message=str(exc)[:500],
+                path=request.url.path,
+                method=request.method,
+                status_code=status_code,
+                client_ip=client_ip,
+                user_agent=ua[:255] if ua else None,
+                request_body=body[:4000],
+                traceback=tb,
+                extra=extra,
+            )
+            db.add(log)
+            await db.commit()
+        except Exception as log_exc:
+            logger.error("Failed to write error log: %s", log_exc, exc_info=log_exc)
+        finally:
+            break
 
 
 @asynccontextmanager
@@ -200,3 +250,21 @@ app.include_router(football.router, prefix="/api/v1", tags=["football"])
 @app.get("/health")
 async def health_check():
     return {"status": "ok"}
+
+
+@app.exception_handler(FastAPIHTTPException)
+async def http_exception_handler(request: Request, exc: FastAPIHTTPException):
+    # Логируем только серверные ошибки; 4xx оставляем как есть
+    if exc.status_code >= 500:
+        await _log_error_to_db(request, exc, status_code=exc.status_code, level="ERROR")
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unhandled error: %s", exc)
+    await _log_error_to_db(request, exc, status_code=500, level="ERROR")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Internal server error"},
+    )

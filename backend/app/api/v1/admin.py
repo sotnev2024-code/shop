@@ -29,6 +29,7 @@ from app.db.models.promo import PromoCode
 from app.db.models.banner import Banner
 from app.db.models.app_config import AppConfig
 from app.db.models.bonus_transaction import BonusTransaction
+from app.db.models.error_log import ErrorLog
 from app.api.deps import get_admin_user
 from app.schemas.product import (
     ProductCreate, ProductUpdate, ProductResponse, ProductListResponse,
@@ -117,6 +118,57 @@ async def get_stats(
         "products": {
             "total": total_products,
         },
+    }
+
+
+@router.get("/error-logs")
+async def admin_get_error_logs(
+    limit: int = Query(100, ge=1, le=1000),
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """Return recent error logs for admin panel."""
+    result = await db.execute(
+        select(ErrorLog).order_by(ErrorLog.created_at.desc()).limit(limit)
+    )
+    logs = result.scalars().all()
+    return [
+        {
+            "id": log.id,
+            "created_at": log.created_at,
+            "level": log.level,
+            "message": log.message,
+            "path": log.path,
+            "method": log.method,
+            "status_code": log.status_code,
+        }
+        for log in logs
+    ]
+
+
+@router.get("/error-logs/{log_id}")
+async def admin_get_error_log_detail(
+    log_id: int,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """Return full details of a specific error log entry."""
+    log = await db.get(ErrorLog, log_id)
+    if not log:
+        raise HTTPException(status_code=404, detail="Error log not found")
+    return {
+        "id": log.id,
+        "created_at": log.created_at,
+        "level": log.level,
+        "message": log.message,
+        "path": log.path,
+        "method": log.method,
+        "status_code": log.status_code,
+        "client_ip": log.client_ip,
+        "user_agent": log.user_agent,
+        "request_body": log.request_body,
+        "traceback": log.traceback,
+        "extra": log.extra,
     }
 
 
