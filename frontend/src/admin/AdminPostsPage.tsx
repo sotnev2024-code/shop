@@ -356,7 +356,7 @@ export const AdminPostsPage: React.FC = () => {
               </div>
               {!post.sent_at && (
                 <Button
-                  size="small"
+                  size="sm"
                   onClick={() => setSendModal(post)}
                   disabled={sending}
                 >
