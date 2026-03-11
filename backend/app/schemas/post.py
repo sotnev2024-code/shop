@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -49,5 +49,5 @@ class PostResponse(BaseModel):
 
 
 class PostListResponse(BaseModel):
-    items: list[PostResponse]
+    items: List[PostResponse]
     total: int
