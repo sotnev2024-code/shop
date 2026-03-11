@@ -22,19 +22,34 @@ def _absolute_photo_url(image_url: str) -> str:
     return base.rstrip("/") + ("/" + image_url.lstrip("/"))
 
 
+def _to_https(url: str) -> str:
+    """Ensure URL uses HTTPS (replace http:// with https://)."""
+    if not url:
+        return url
+    u = url.strip()
+    if u.lower().startswith("http://"):
+        return "https://" + u[7:]
+    return u
+
+
+def _get_webapp_url_https() -> str:
+    """Return webapp URL, forcing HTTPS when no link is specified."""
+    return _to_https(settings.webapp_url)
+
+
 def _build_product_deeplink(product_id: int) -> str:
     """Build t.me deep link for product: https://t.me/<bot_username>?start=product_<id>."""
     username = get_bot_username()
     if not username:
-        return settings.webapp_url + f"/product/{product_id}"
+        return _get_webapp_url_https().rstrip("/") + f"/product/{product_id}"
     return f"https://t.me/{username}?start=product_{product_id}"
 
 
 def _build_shop_deeplink() -> str:
-    """Build t.me deep link for shop: https://t.me/<bot_username>?start=start or webapp_url."""
+    """Build t.me deep link for shop or webapp URL (HTTPS)."""
     username = get_bot_username()
     if not username:
-        return settings.webapp_url
+        return _get_webapp_url_https()
     return f"https://t.me/{username}?start=start"
 
 
