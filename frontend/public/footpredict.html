@@ -32,7 +32,7 @@
             flex: 1;
         }
 
-        /* balance card & header */
+        /* balance block */
         .balance-header {
             background: #1e2532;
             border-radius: 24px;
@@ -40,43 +40,24 @@
             margin-bottom: 20px;
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
             border: 1px solid #2e3a4a;
+            font-size: 16px;
+            color: #8a9bb5;
+            backdrop-filter: blur(4px);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            backdrop-filter: blur(4px);
         }
 
-        .balance-label {
-            font-size: 14px;
-            font-weight: 500;
-            color: #8a9bb5;
-            letter-spacing: 0.3px;
-        }
-
-        .balance-value {
-            font-size: 32px;
+        .balance-header #balanceDisplay {
+            font-size: 22px;
             font-weight: 700;
             color: #ffffff;
-            line-height: 1.2;
         }
 
-        .balance-value span {
-            font-size: 16px;
+        .balance-header #balanceDisplay span {
+            font-size: 14px;
             color: #6d7f99;
-            margin-left: 4px;
             font-weight: 500;
-        }
-
-        .reset-month {
-            background: #2b3648;
-            padding: 8px 16px;
-            border-radius: 40px;
-            font-size: 13px;
-            font-weight: 500;
-            color: #a2bfee;
-            border: 1px solid #3e4d62;
-            white-space: nowrap;
-            cursor: pointer;
         }
 
         /* filter bar */
@@ -125,6 +106,30 @@
         .section-title i {
             color: #5f7dbf;
         }
+        .section-title-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin: 16px 0 14px 8px;
+            flex-wrap: wrap;
+        }
+        .section-title-row .section-title {
+            margin: 0;
+        }
+        .matches-date-picker {
+            background: #1e2532;
+            border: 1px solid #2e3a4a;
+            border-radius: 14px;
+            padding: 8px 12px;
+            font-size: 14px;
+            color: #f0f4fd;
+            min-width: 140px;
+        }
+        .matches-date-picker:focus {
+            outline: none;
+            border-color: #5f7dbf;
+        }
 
         /* match cards grid */
         .matches-grid {
@@ -153,6 +158,17 @@
             font-weight: 600;
             color: #93b3de;
             border: 1px solid #334152;
+        }
+
+        .match-kickoff {
+            font-size: 13px;
+            color: #7a8fa8;
+            margin-bottom: 10px;
+        }
+        .match-started-hint {
+            font-size: 12px;
+            color: #c45d5d;
+            margin-bottom: 8px;
         }
 
         .teams-row {
@@ -484,6 +500,87 @@
         .history-result.loss {
             color: #c45d5d;
         }
+        .history-item.clickable {
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+        .history-item.clickable:active {
+            background: #1a2433;
+        }
+
+        /* Detail modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.65);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .modal-overlay.hidden {
+            display: none;
+        }
+        .modal-box {
+            background: #1e2532;
+            border-radius: 24px;
+            padding: 24px;
+            max-width: 360px;
+            width: 100%;
+            border: 1px solid #2e3a4a;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            position: relative;
+        }
+        .modal-close {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: #2b3648;
+            color: #a0b4d0;
+            font-size: 22px;
+            line-height: 1;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+        .modal-close:active {
+            background: #3a4558;
+        }
+        .modal-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #f0f4fd;
+            margin-bottom: 20px;
+            padding-right: 40px;
+        }
+        .modal-detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 10px 0;
+            border-bottom: 1px solid #2a3442;
+            font-size: 14px;
+        }
+        .modal-detail-row:last-child {
+            border-bottom: none;
+        }
+        .modal-detail-label {
+            color: #7a8fa8;
+            margin-right: 12px;
+        }
+        .modal-detail-value {
+            color: #f0f4fd;
+            font-weight: 500;
+            text-align: right;
+        }
 
         .leaderboard-full {
             background: #151e2a;
@@ -530,18 +627,6 @@
             text-shadow: 0 2px 3px #00000040;
         }
 
-        .tg-brand {
-            background: #1d2a39;
-            border-radius: 18px;
-            padding: 8px 16px;
-            margin-bottom: 18px;
-            font-size: 13px;
-            color: #acc3e6;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            border: 1px solid #324153;
-        }
         .note-text {
             font-size: 12px;
             color: #667c9c;
@@ -556,24 +641,19 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- Telegram WebApp info -->
-        <div class="tg-brand" id="tgWebAppInfo">
-            ⚡ Telegram WebApp · <span id="tgUserSpan">connected</span>
-        </div>
-
-        <!-- Balance header (shown on all panels) -->
+        <!-- Balance (shown on all panels) -->
         <div class="balance-header">
-            <div>
-                <div class="balance-label">💰 MONTHLY BALANCE</div>
-                <div class="balance-value" id="balanceDisplay">10,000 <span>pts</span></div>
-            </div>
-            <div class="reset-month" id="monthResetHint">🔄 reset</div>
+            <span>Ваш текущий баланс:</span>
+            <span id="balanceDisplay">10,000 <span>pts</span></span>
         </div>
 
         <!-- Main Panel (Bets) -->
         <div id="panelBets" class="panel active">
             <div class="filter-bar" id="filterContainer"></div>
-            <div class="section-title"><span>⚽</span> доступные матчи</div>
+            <div class="section-title-row">
+                <div class="section-title"><span>⚽</span> доступные матчи</div>
+                <input type="date" id="matchesDatePicker" class="matches-date-picker" aria-label="Выберите дату">
+            </div>
             <div class="matches-grid" id="matchesContainer"></div>
         </div>
 
@@ -608,6 +688,21 @@
         </div>
     </div>
 
+    <div class="bottom-nav">
+        <div class="nav-item active" data-panel="bets"><i>⚽</i><span>Ставки</span></div>
+        <div class="nav-item" data-panel="leaderboard"><i>🏆</i><span>Топ</span></div>
+        <div class="nav-item" data-panel="profile"><i>👤</i><span>Профиль</span></div>
+    </div>
+
+    <!-- Модальное окно с подробной информацией -->
+    <div id="detailModal" class="modal-overlay hidden" aria-hidden="true">
+        <div class="modal-box">
+            <button type="button" class="modal-close" id="modalCloseBtn" aria-label="Закрыть">×</button>
+            <div class="modal-title" id="modalTitle">Подробности</div>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
     <script>
         (function() {
             const tg = window.Telegram?.WebApp;
@@ -632,42 +727,21 @@
                 photo_url: null 
             };
             
-            // Матчи: по умолчанию демо-данные, затем заменим ответом бэкенда
-            let matches = [
-                { id: 'm1', league: '🏴 АПЛ', home: 'Arsenal', away: 'Chelsea', oddsHome: 2.10, oddsDraw: 3.40, oddsAway: 3.60, badgeH: '🔴', badgeA: '🔵' },
-                { id: 'm2', league: '🇪🇸 Ла Лига', home: 'Real Madrid', away: 'Barcelona', oddsHome: 2.05, oddsDraw: 3.55, oddsAway: 3.80, badgeH: '👑', badgeA: '🔴' },
-                { id: 'm3', league: '🇩🇪 Бундеслига', home: 'Bayern', away: 'Dortmund', oddsHome: 1.85, oddsDraw: 3.70, oddsAway: 4.10, badgeH: '🇩🇪', badgeA: '🟡' },
-                { id: 'm4', league: '🇮🇹 Серия А', home: 'Juventus', away: 'Milan', oddsHome: 2.30, oddsDraw: 3.20, oddsAway: 3.30, badgeH: '⚫', badgeA: '🔴' },
-                { id: 'm5', league: '🏴 АПЛ', home: 'Liverpool', away: 'Man City', oddsHome: 2.70, oddsDraw: 3.50, oddsAway: 2.50, badgeH: '🔴', badgeA: '🔵' },
-                { id: 'm6', league: '🇫🇷 Лига 1', home: 'PSG', away: 'Marseille', oddsHome: 1.55, oddsDraw: 4.20, oddsAway: 5.50, badgeH: '🔵', badgeA: '⚪' }
-            ];
+            // Матчи: загружаются с API, без демо-данных
+            let matches = [];
+            let matchesLoaded = false;
+            let matchesLoadError = false;
 
-            let leagues = [...new Set(matches.map(m => m.league))];
+            let leagues = ['Все'];
             let activeLeague = 'Все';
             let selections = {};
 
-            // История и начисления
-            let betHistory = [
-                { match: 'Arsenal - Chelsea', outcome: 'Home', amount: 500, result: 'win', payout: 1050 },
-                { match: 'Bayern - Dortmund', outcome: 'Draw', amount: 300, result: 'loss', payout: 0 },
-                { match: 'Real Madrid - Barcelona', outcome: 'Away', amount: 200, result: 'pending', payout: null },
-                { match: 'Liverpool - Man City', outcome: 'Home', amount: 150, result: 'win', payout: 405 }
-            ];
-            
-            let accruals = [
-                { date: '2024-03-01', type: 'Месячный бонус', points: 10000 },
-                { date: '2024-03-05', type: 'Выигрыш (Arsenal - Chelsea)', points: 1050 },
-                { date: '2024-03-07', type: 'Кешбэк', points: 150 },
-                { date: '2024-03-10', type: 'Выигрыш (Liverpool - Man City)', points: 405 }
-            ];
+            // История и начисления (загружаются с API)
+            let betHistory = [];
+            let accruals = [];
 
-            const leaderboardMock = [
-                { name: 'Alex', tag: '@alexgoals', score: 18940 },
-                { name: 'Maria', tag: '@maria_f', score: 17230 },
-                { name: 'Johan', tag: '@johanc', score: 15420 },
-                { name: 'Sophie', tag: '@sopredict', score: 14980 },
-                { name: 'Marco', tag: '@marcov', score: 13750 }
-            ];
+            let leaderboardData = [];
+            let leaderboardLoaded = false;
 
             // Format helpers
             function formatPoints(num) { return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
@@ -682,9 +756,14 @@
 
             async function fetchJson(url, options = {}) {
                 try {
+                    const headers = { ...(options.headers || {}) };
+                    if (window.Telegram?.WebApp?.initData) {
+                        headers['X-Init-Data'] = window.Telegram.WebApp.initData;
+                    }
                     const res = await fetch(url, {
                         credentials: 'include',
                         ...options,
+                        headers,
                     });
                     if (!res.ok) {
                         console.warn('API error', url, res.status);
@@ -707,6 +786,59 @@
                 }
             }
 
+            async function loadBetHistory() {
+                const data = await fetchJson(`${API_BASE}/api/v1/football/bets/history`);
+                if (data && Array.isArray(data.bets)) {
+                    betHistory = data.bets.map(b => ({
+                        match: b.match,
+                        outcome: b.outcome,
+                        amount: b.amount,
+                        result: b.result === 'won' ? 'win' : (b.result === 'lost' ? 'loss' : 'pending'),
+                        payout: b.payout,
+                        created_at: b.created_at || null,
+                        odds: b.odds,
+                    }));
+                } else {
+                    betHistory = [];
+                }
+                renderBetHistory();
+                renderProfileStats();
+            }
+
+            async function loadAccruals() {
+                const data = await fetchJson(`${API_BASE}/api/v1/football/accruals`);
+                if (data && Array.isArray(data.accruals)) {
+                    accruals = data.accruals.map(a => ({
+                        date: a.date,
+                        type: a.type,
+                        points: a.points,
+                        created_at: a.created_at || null,
+                    }));
+                } else {
+                    accruals = [];
+                }
+                renderAccruals();
+            }
+
+            // Форматирование даты/времени матча — всегда по Москве (МСК)
+            const TZ_MOSCOW = 'Europe/Moscow';
+            function formatMatchTime(kickoffAt, timezone) {
+                if (!kickoffAt) return '';
+                try {
+                    const date = new Date(kickoffAt);
+                    if (isNaN(date.getTime())) return '';
+                    return new Intl.DateTimeFormat('ru-RU', {
+                        day: 'numeric',
+                        month: 'short',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        timeZone: TZ_MOSCOW,
+                    }).format(date);
+                } catch (e) {
+                    return '';
+                }
+            }
+
             function adaptBackendMatches(apiMatches) {
                 if (!Array.isArray(apiMatches)) return;
                 matches = apiMatches.map((m, idx) => {
@@ -724,6 +856,7 @@
                         badgeH: m.home_team?.logo || 'H',
                         badgeA: m.away_team?.logo || 'A',
                         kickoffAt: m.kickoff_at || m.date || null,
+                        timezone: m.timezone || 'UTC',
                         status: m.status || m.status_short || null,
                     };
                 });
@@ -734,11 +867,34 @@
                 renderMatches();
             }
 
-            async function loadTodayMatches() {
-                const data = await fetchJson(`${API_BASE}/api/v1/football/matches/today`);
+            function getTodayDateStr() {
+                const d = new Date();
+                return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            }
+
+            async function loadMatchesForDate(dateStr) {
+                matchesLoadError = false;
+                renderMatches();
+                const url = dateStr
+                    ? `${API_BASE}/api/v1/football/matches/today?date=${encodeURIComponent(dateStr)}`
+                    : `${API_BASE}/api/v1/football/matches/today`;
+                const data = await fetchJson(url);
+                matchesLoaded = true;
                 if (data && Array.isArray(data.matches)) {
                     adaptBackendMatches(data.matches);
+                } else {
+                    matches = [];
+                    leagues = ['Все'];
+                    if (data === null) matchesLoadError = true;
+                    renderFilters();
+                    renderMatches();
                 }
+            }
+
+            async function loadTodayMatches() {
+                const picker = document.getElementById('matchesDatePicker');
+                const dateStr = picker ? picker.value : getTodayDateStr();
+                await loadMatchesForDate(dateStr);
             }
 
             // Render profile header with avatar and user info
@@ -794,13 +950,12 @@
                 if (!container) return;
                 
                 let html = '';
-                betHistory.slice(0, 10).forEach(b => {
+                betHistory.slice(0, 10).forEach((b, idx) => {
                     const resultClass = b.result === 'win' ? 'win' : (b.result === 'loss' ? 'loss' : '');
                     const resultText = b.result === 'win' ? '✅' : (b.result === 'loss' ? '❌' : '⏳');
                     const payoutText = b.payout ? `+${b.payout}` : '';
-                    
                     html += `
-                        <div class="history-item">
+                        <div class="history-item clickable" data-type="bet" data-index="${idx}">
                             <div>
                                 <div class="history-match">${b.match}</div>
                                 <div class="history-outcome">${b.outcome}</div>
@@ -812,11 +967,11 @@
                         </div>
                     `;
                 });
-                
                 if (html === '') {
                     html = '<div class="empty-state">История ставок пуста</div>';
                 }
                 container.innerHTML = html;
+                attachDetailModalListeners();
             }
 
             // Render accruals
@@ -825,22 +980,107 @@
                 if (!container) return;
                 
                 let html = '';
-                accruals.slice(0, 10).forEach(a => {
+                accruals.slice(0, 10).forEach((a, idx) => {
+                    const sign = a.points >= 0 ? '+' : '';
                     html += `
-                        <div class="history-item">
+                        <div class="history-item clickable" data-type="accrual" data-index="${idx}">
                             <div>
                                 <div class="history-match">${a.date}</div>
                                 <div class="history-outcome">${a.type}</div>
                             </div>
-                            <div class="history-amount">+${a.points} pts</div>
+                            <div class="history-amount">${sign}${a.points} pts</div>
                         </div>
                     `;
                 });
-                
                 if (html === '') {
                     html = '<div class="empty-state">Нет начислений</div>';
                 }
                 container.innerHTML = html;
+                attachDetailModalListeners();
+            }
+
+            function formatDateTime(isoStr) {
+                if (!isoStr) return '—';
+                try {
+                    const d = new Date(isoStr);
+                    if (isNaN(d.getTime())) return isoStr;
+                    return new Intl.DateTimeFormat('ru-RU', {
+                        day: 'numeric', month: 'short', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit',
+                        timeZone: 'Europe/Moscow',
+                    }).format(d);
+                } catch (e) { return isoStr; }
+            }
+
+            function openBetDetailModal(index) {
+                const b = betHistory[index];
+                if (!b) return;
+                const resultText = b.result === 'win' ? 'Выигрыш' : (b.result === 'loss' ? 'Проигрыш' : 'В ожидании');
+                const payoutStr = b.payout != null ? `${b.payout} pts` : '—';
+                const oddsStr = b.odds != null ? String(b.odds) : '—';
+                document.getElementById('modalTitle').textContent = '📋 Ставка';
+                document.getElementById('modalContent').innerHTML = `
+                    <div class="modal-detail-row"><span class="modal-detail-label">Матч</span><span class="modal-detail-value">${b.match}</span></div>
+                    <div class="modal-detail-row"><span class="modal-detail-label">Исход</span><span class="modal-detail-value">${b.outcome}</span></div>
+                    <div class="modal-detail-row"><span class="modal-detail-label">Сумма ставки</span><span class="modal-detail-value">${b.amount} pts</span></div>
+                    <div class="modal-detail-row"><span class="modal-detail-label">Коэффициент</span><span class="modal-detail-value">${oddsStr}</span></div>
+                    <div class="modal-detail-row"><span class="modal-detail-label">Результат</span><span class="modal-detail-value">${resultText}</span></div>
+                    <div class="modal-detail-row"><span class="modal-detail-label">Выигрыш</span><span class="modal-detail-value">${payoutStr}</span></div>
+                    <div class="modal-detail-row"><span class="modal-detail-label">Дата и время</span><span class="modal-detail-value">${formatDateTime(b.created_at)}</span></div>
+                `;
+                const modal = document.getElementById('detailModal');
+                modal.classList.remove('hidden');
+                modal.setAttribute('aria-hidden', 'false');
+            }
+
+            function openAccrualDetailModal(index) {
+                const a = accruals[index];
+                if (!a) return;
+                const sign = a.points >= 0 ? '+' : '';
+                document.getElementById('modalTitle').textContent = '💰 Начисление';
+                document.getElementById('modalContent').innerHTML = `
+                    <div class="modal-detail-row"><span class="modal-detail-label">Дата</span><span class="modal-detail-value">${a.date}</span></div>
+                    <div class="modal-detail-row"><span class="modal-detail-label">Тип</span><span class="modal-detail-value">${a.type}</span></div>
+                    <div class="modal-detail-row"><span class="modal-detail-label">Сумма</span><span class="modal-detail-value">${sign}${a.points} pts</span></div>
+                    <div class="modal-detail-row"><span class="modal-detail-label">Дата и время</span><span class="modal-detail-value">${formatDateTime(a.created_at)}</span></div>
+                `;
+                const modal = document.getElementById('detailModal');
+                modal.classList.remove('hidden');
+                modal.setAttribute('aria-hidden', 'false');
+            }
+
+            function closeDetailModal() {
+                const modal = document.getElementById('detailModal');
+                modal.classList.add('hidden');
+                modal.setAttribute('aria-hidden', 'true');
+            }
+
+            function attachDetailModalListeners() {
+                document.querySelectorAll('#betHistoryContainer .history-item.clickable[data-type="bet"]').forEach(el => {
+                    el.onclick = function() {
+                        const idx = parseInt(this.getAttribute('data-index'), 10);
+                        if (!isNaN(idx)) openBetDetailModal(idx);
+                    };
+                });
+                document.querySelectorAll('#accrualsContainer .history-item.clickable[data-type="accrual"]').forEach(el => {
+                    el.onclick = function() {
+                        const idx = parseInt(this.getAttribute('data-index'), 10);
+                        if (!isNaN(idx)) openAccrualDetailModal(idx);
+                    };
+                });
+            }
+
+            function setupModalClose() {
+                const modal = document.getElementById('detailModal');
+                const closeBtn = document.getElementById('modalCloseBtn');
+                if (closeBtn) closeBtn.addEventListener('click', closeDetailModal);
+                if (modal) {
+                    modal.addEventListener('click', function(e) {
+                        if (e.target === modal) closeDetailModal();
+                    });
+                    const box = modal.querySelector('.modal-box');
+                    if (box) box.addEventListener('click', function(e) { e.stopPropagation(); });
+                }
             }
 
             // Toggle between history and accruals
@@ -893,6 +1133,15 @@
 
             function renderMatches() {
                 const container = document.getElementById('matchesContainer');
+                if (!container) return;
+                if (!matchesLoaded) {
+                    container.innerHTML = '<div class="empty-state">Загрузка матчей…</div>';
+                    return;
+                }
+                if (matchesLoadError && matches.length === 0) {
+                    container.innerHTML = '<div class="empty-state">Не удалось загрузить матчи. Проверьте подключение и обновите страницу.</div>';
+                    return;
+                }
                 const filtered = activeLeague === 'Все' ? matches : matches.filter(m => m.league === activeLeague);
                 let htmlStr = '';
                 filtered.forEach(m => {
@@ -903,9 +1152,13 @@
                     const btnAwayClass = `odd-btn ${selectedOutcome === 'A' ? 'selected' : ''}`;
                     const betAmount = sel.amount || '';
 
+                    const kickoffStr = formatMatchTime(m.kickoffAt, m.timezone);
+                    const isMatchStarted = m.kickoffAt ? (Date.now() >= new Date(m.kickoffAt).getTime()) : false;
                     htmlStr += `
                         <div class="match-card" data-match-id="${m.id}">
                             <div class="league-badge">${m.league}</div>
+                            ${kickoffStr ? `<div class="match-kickoff">${kickoffStr}</div>` : ''}
+                            ${isMatchStarted ? '<div class="match-started-hint">Матч начался — ставки закрыты</div>' : ''}
                             <div class="teams-row">
                                 <div class="team">
                                     <span class="team-badge">${
@@ -933,15 +1186,53 @@
                             <div class="bet-area">
                                 <div class="bet-input-wrapper">
                                     <span>⚡</span>
-                                    <input class="bet-input" type="number" placeholder="сумма" min="1" value="${betAmount}" data-match-id="${m.id}" id="input-${m.id}">
+                                    <input class="bet-input" type="number" placeholder="сумма" min="1" value="${betAmount}" data-match-id="${m.id}" id="input-${m.id}" ${isMatchStarted ? 'disabled' : ''}>
                                 </div>
-                                <button class="place-bet-btn" data-match-id="${m.id}" id="betbtn-${m.id}">Ставка</button>
+                                <button class="place-bet-btn" data-match-id="${m.id}" id="betbtn-${m.id}" ${isMatchStarted ? 'disabled' : ''}>${isMatchStarted ? 'Ставки закрыты' : 'Ставка'}</button>
                             </div>
                         </div>
                     `;
                 });
-                container.innerHTML = htmlStr || '<div style="padding: 20px; text-align:center;">Нет матчей в этой лиге</div>';
+                container.innerHTML = htmlStr || '<div class="empty-state">Нет матчей на выбранный период</div>';
                 attachMatchEvents();
+            }
+
+            async function loadLeaderboard() {
+                const data = await fetchJson(`${API_BASE}/api/v1/football/leaderboard`);
+                leaderboardLoaded = true;
+                if (data && Array.isArray(data.leaderboard)) {
+                    leaderboardData = data.leaderboard;
+                }
+                renderLeaderboard();
+            }
+
+            function renderLeaderboard() {
+                const container = document.getElementById('leaderboardContainer');
+                if (!container) return;
+                let html = '';
+                if (!leaderboardLoaded) {
+                    html = '<div class="empty-state">Загрузка топа…</div>';
+                } else if (leaderboardData.length === 0) {
+                    html = '<div class="empty-state">Пока никого в топе</div>';
+                } else {
+                    leaderboardData.forEach((p) => {
+                        const tag = p.tag ? ' <small>' + p.tag + '</small>' : '';
+                        html += '<div class="leaderboard-item"><div class="rank">' + p.rank + '</div><div class="player-info">' + (p.name || 'Игрок') + tag + '</div><div class="player-score">' + formatPoints(p.score) + '</div></div>';
+                    });
+                }
+                container.innerHTML = html;
+            }
+
+            function showPanel(panelId) {
+                document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
+                var el = document.getElementById('panel' + panelId);
+                if (el) el.classList.add('active');
+                document.querySelectorAll('.nav-item').forEach(function(item) { item.classList.remove('active'); });
+                var nav = document.querySelector('.nav-item[data-panel="' + panelId.toLowerCase() + '"]');
+                if (nav) nav.classList.add('active');
+                if (panelId === 'Profile') { loadBetHistory(); loadAccruals(); renderFullProfile(); }
+                if (panelId === 'Leaderboard') loadLeaderboard();
+                if (panelId === 'Bets') { renderFilters(); renderMatches(); }
             }
 
             function attachMatchEvents() {
@@ -966,7 +1257,7 @@
                 });
 
                 document.querySelectorAll('.place-bet-btn').forEach(btn => {
-                    btn.addEventListener('click', function(e) {
+                    btn.addEventListener('click', async function(e) {
                         const matchId = this.dataset.matchId;
                         const match = matches.find(m => m.id === matchId);
                         if (!match) return;
@@ -975,25 +1266,52 @@
                         const amount = parseInt(sel.amount, 10);
                         if (!outcome) { tg?.showAlert?.('❌ Выберите исход'); return; }
                         if (!amount || amount <= 0) { tg?.showAlert?.('⚠️ Введите сумму'); return; }
-                        if (amount > userBalance) { tg?.showAlert?.(`💔 Недостаточно средств. Баланс: ${formatPoints(userBalance)} pts`); return; }
+                        if (amount > userBalance) {
+                            tg?.showAlert?.(`Нельзя поставить больше, чем есть на балансе. Ваш баланс: ${formatPoints(userBalance)} pts`);
+                            return;
+                        }
+                        if (match.kickoffAt) {
+                            const kickoff = new Date(match.kickoffAt).getTime();
+                            if (Date.now() >= kickoff) {
+                                tg?.showAlert?.('Матч уже начался. Ставки не принимаются.');
+                                return;
+                            }
+                        }
 
-                        let odds = outcome === 'H' ? match.oddsHome : (outcome === 'D' ? match.oddsDraw : match.oddsAway);
-                        userBalance -= amount;
-                        updateBalanceUI();
+                        const odds = outcome === 'H' ? match.oddsHome : (outcome === 'D' ? match.oddsDraw : match.oddsAway);
+                        const matchLabel = `${match.home} - ${match.away}`;
+                        const fixtureId = parseInt(matchId, 10) || 0;
+                        if (!fixtureId) { tg?.showAlert?.('Ошибка: неверный матч'); return; }
 
-                        const potentialWin = Math.round(amount * odds * 100) / 100;
-                        tg?.showAlert?.(`✅ Ставка принята!\\nПотенциальный выигрыш: ${potentialWin} pts`);
-
-                        // Добавляем в историю
-                        betHistory.unshift({ 
-                            match: `${match.home} - ${match.away}`, 
-                            outcome: outcome === 'H' ? 'Home' : outcome === 'D' ? 'Draw' : 'Away', 
-                            amount, 
-                            result: 'pending', 
-                            payout: null 
+                        const headers = { 'Content-Type': 'application/json' };
+                        if (window.Telegram?.WebApp?.initData) headers['X-Init-Data'] = window.Telegram.WebApp.initData;
+                        const res = await fetch(`${API_BASE}/api/v1/football/bets`, {
+                            method: 'POST',
+                            credentials: 'include',
+                            headers,
+                            body: JSON.stringify({
+                                fixture_id: fixtureId,
+                                match_label: matchLabel,
+                                outcome: outcome,
+                                amount: amount,
+                                odds: odds,
+                                kickoff_at: match.kickoffAt || null,
+                            }),
                         });
-                        
+                        const data = await res.json().catch(() => ({}));
+                        if (!res.ok || !data.success) {
+                            tg?.showAlert?.(data.detail || 'Не удалось принять ставку');
+                            return;
+                        }
+                        const resData = data;
+                        userBalance = resData.competition_points_balance;
+                        updateBalanceUI();
+                        const potentialWin = Math.round(amount * odds * 100) / 100;
+                        tg?.showAlert?.(`✅ Ставка принята! Потенциальный выигрыш: ${potentialWin} pts`);
+
                         if (selections[matchId]) selections[matchId].amount = '';
+                        await loadBetHistory();
+                        await loadAccruals();
                         renderMatches();
                         renderFullProfile();
                         tg?.HapticFeedback?.notification('success');
@@ -1002,13 +1320,35 @@
             }
 
             // Full render on load
+            setupModalClose();
+            setupProfileToggles();
             renderFilters();
             renderMatches();
-            renderLeaderboard();
+            loadLeaderboard();
             renderFullProfile();
             updateBalanceUI();
+
+            document.querySelectorAll('.nav-item').forEach(function(item) {
+                item.addEventListener('click', function() {
+                    var panel = this.getAttribute('data-panel');
+                    if (panel === 'bets') showPanel('Bets');
+                    else if (panel === 'leaderboard') showPanel('Leaderboard');
+                    else if (panel === 'profile') showPanel('Profile');
+                });
+            });
+
+            var matchesDatePicker = document.getElementById('matchesDatePicker');
+            if (matchesDatePicker) {
+                matchesDatePicker.value = getTodayDateStr();
+                matchesDatePicker.addEventListener('change', function() {
+                    loadMatchesForDate(this.value);
+                });
+            }
+
             loadUserPoints();
             loadTodayMatches();
+            loadBetHistory();
+            loadAccruals();
         })();
     </script>
 </body>

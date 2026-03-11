@@ -2,11 +2,23 @@
 
 Интернет-магазин в виде Telegram Mini App с админ-панелью и интеграциями с 1C и МойСклад.
 
+## Локальный запуск (одна команда)
+
+Установите [Python 3.10+](https://www.python.org/) и [Node.js 18+](https://nodejs.org/), затем в корне проекта:
+
+```powershell
+.\start.ps1
+```
+
+Скрипт сам создаст виртуальное окружение, установит зависимости, при необходимости создаст `backend\.env` (с `DEV_MODE=true`) и БД, запустит backend на **http://localhost:8000** и frontend на **http://localhost:3000**. Откройте в браузере http://localhost:3000 — в dev-режиме авторизация не требуется.
+
+Если PowerShell ругается на выполнение скриптов: `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned`
+
 ## Требования
 
 - **Python 3.10+** (рекомендуется 3.11+)
 - **Node.js 18+** и npm
-- **Telegram Bot Token** (получить у [@BotFather](https://t.me/BotFather))
+- **Telegram Bot Token** (нужен только для продакшена; для локального запуска можно не указывать при `DEV_MODE=true`)
 
 ## Быстрый старт
 
@@ -237,5 +249,6 @@ cd ..
 - **Backend API Docs**: http://localhost:8000/docs
 - **Backend ReDoc**: http://localhost:8000/redoc
 
-#   s h o p  
+#   s h o p 
+ 
  

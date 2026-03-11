@@ -6,6 +6,7 @@ import {
   adminGetModificationTypes, adminCreateModificationType, adminUpdateModificationType, adminDeleteModificationType,
   adminAddModificationTypeValue, adminDeleteModificationTypeValue,
   adminGetProducts, adminBulkPriceUpdate,
+  adminSettlePendingBets,
 } from '../api/endpoints';
 import type { Category, ModificationType, Product } from '../types';
 import type { BulkPriceScope, BulkPriceOperation } from '../types';
@@ -83,6 +84,10 @@ export const AdminSettingsPage: React.FC = () => {
   const [bulkError, setBulkError] = useState('');
   const [bulkSuccess, setBulkSuccess] = useState('');
 
+  // --- Football bets admin state ---
+  const [settleLoading, setSettleLoading] = useState(false);
+  const [settleResult, setSettleResult] = useState('');
+
   type SettingsSection = 'general' | 'admins' | 'delivery' | 'banners' | 'bonuses' | 'categories' | 'modifications' | 'bulk';
   const [activeSection, setActiveSection] = useState<SettingsSection>('general');
 
@@ -107,7 +112,7 @@ export const AdminSettingsPage: React.FC = () => {
   }, []);
 
   const fetchCategories = () => {
-    adminGetCategories().then(({ data }) => {
+    return adminGetCategories().then(({ data }) => {
       setCategories(data.sort((a, b) => a.sort_order - b.sort_order));
     });
   };
@@ -454,19 +459,37 @@ export const AdminSettingsPage: React.FC = () => {
   const handleMoveCategory = async (id: number, direction: 'up' | 'down') => {
     const idx = displayCategories.findIndex((c) => c.id === id);
     if (idx < 0) return;
-    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    const current = displayCategories[idx];
+    const parentId = current.parent_id ?? null;
+    const isAllSlug = (c: Category) => c.slug === 'all';
+    // Find previous/next sibling (same parent_id); нельзя менять с «Все» — у неё на бэкенде не обновляется sort_order
+    const swapIdx =
+      direction === 'up'
+        ? [...displayCategories]
+            .map((c, i) => (c.parent_id ?? null) === parentId && !isAllSlug(c) ? i : -1)
+            .filter((i) => i >= 0 && i < idx)
+            .pop() ?? -1
+        : displayCategories.findIndex((c, i) => i > idx && (c.parent_id ?? null) === parentId && !isAllSlug(c));
     if (swapIdx < 0 || swapIdx >= displayCategories.length) return;
 
-    const current = displayCategories[idx];
     const swap = displayCategories[swapIdx];
-    // Move only within siblings (same parent_id); treat null and undefined as equal
-    if ((current.parent_id ?? null) !== (swap.parent_id ?? null)) return;
+    let newOrderCurrent = swap.sort_order;
+    let newOrderSwap = current.sort_order;
+    if (newOrderCurrent === newOrderSwap) {
+      if (direction === 'up') {
+        newOrderCurrent = swap.sort_order - 1;
+        newOrderSwap = current.sort_order + 1;
+      } else {
+        newOrderCurrent = swap.sort_order + 1;
+        newOrderSwap = current.sort_order - 1;
+      }
+    }
 
     setCatLoading(true);
     try {
-      await adminUpdateCategory(current.id, { sort_order: swap.sort_order });
-      await adminUpdateCategory(swap.id, { sort_order: current.sort_order });
-      fetchCategories();
+      await adminUpdateCategory(current.id, { sort_order: newOrderCurrent });
+      await adminUpdateCategory(swap.id, { sort_order: newOrderSwap });
+      await fetchCategories();
     } catch {
       alert('Ошибка сортировки');
     }
@@ -781,6 +804,38 @@ export const AdminSettingsPage: React.FC = () => {
             </>
           )}
           <Button onClick={handleSave} fullWidth>{saved ? '✓ Сохранено!' : 'Сохранить'}</Button>
+
+          {/* Football competition tools */}
+          <div className="mt-6 border-t border-tg-secondary pt-4 space-y-2">
+            <h3 className="text-sm font-semibold text-tg-text">Футбольные ставки (админ)</h3>
+            <p className="text-xs text-tg-hint">
+              Нажмите кнопку ниже, чтобы разово рассчитать все ожидающие ставки (pending) и начислить выигрыши.
+            </p>
+            <Button
+              type="button"
+              size="sm"
+              onClick={async () => {
+                if (!window.confirm('Рассчитать все ожидающие ставки?')) return;
+                setSettleLoading(true);
+                setSettleResult('');
+                try {
+                  const { data } = await adminSettlePendingBets(200);
+                  setSettleResult(
+                    `Обработано: ${data.processed}, выигрышей: ${data.wins}, проигрышей: ${data.losses}, пропущено: ${data.skipped}`,
+                  );
+                } catch (e: any) {
+                  const msg = e?.response?.data?.detail ?? e?.message ?? 'Ошибка расчёта ставок';
+                  alert(typeof msg === 'string' ? msg : JSON.stringify(msg));
+                } finally {
+                  setSettleLoading(false);
+                }
+              }}
+              disabled={settleLoading}
+            >
+              {settleLoading ? 'Рассчитываем…' : 'Рассчитать ожидающие ставки'}
+            </Button>
+            {settleResult && <p className="text-xs text-tg-hint">{settleResult}</p>}
+          </div>
         </div>
       )}
 
@@ -849,8 +904,9 @@ export const AdminSettingsPage: React.FC = () => {
               const parentId = cat.parent_id ?? null;
               const hasChildren = categories.some((c) => (c.parent_id ?? null) === cat.id);
               const isExpanded = expandedCategoryIds.includes(cat.id);
-              const prevSibling = index > 0 && (displayCategories[index - 1].parent_id ?? null) === parentId;
-              const nextSibling = index < displayCategories.length - 1 && (displayCategories[index + 1].parent_id ?? null) === parentId;
+              const notAll = (c: Category) => c.slug !== 'all';
+              const prevSibling = displayCategories.some((c, i) => i < index && (c.parent_id ?? null) === parentId && notAll(c));
+              const nextSibling = displayCategories.some((c, i) => i > index && (c.parent_id ?? null) === parentId && notAll(c));
               const isAllCategory = cat.slug === 'all';
               return (
               <div

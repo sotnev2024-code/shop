@@ -12,6 +12,8 @@ from app.db.models.promo import PromoCode
 from app.db.models.app_config import AppConfig
 from app.db.models.banner import Banner
 from app.db.models.bonus_transaction import BonusTransaction
+from app.db.models.competition_bet import CompetitionBet
+from app.db.models.competition_accrual import CompetitionAccrual
 
 __all__ = [
     "User",
@@ -29,5 +31,7 @@ __all__ = [
     "AppConfig",
     "Banner",
     "BonusTransaction",
+    "CompetitionBet",
+    "CompetitionAccrual",
 ]
 

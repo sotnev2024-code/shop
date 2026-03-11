@@ -56,13 +56,43 @@ if ($nodeExists -and -not (Test-Path $nodeModules)) {
     Write-Host ""
 }
 
-# --- Check backend venv ---
-$venvPython = Join-Path $root "venv\Scripts\python.exe"
+# --- Check backend venv (create and install deps if missing) ---
+$venvDir = Join-Path $root "venv"
+$venvPython = Join-Path $venvDir "Scripts\python.exe"
+$venvPip = Join-Path $venvDir "Scripts\pip.exe"
 if (-not (Test-Path $venvPython)) {
-    Write-Host "[!] Python venv not found at venv\Scripts\python.exe" -ForegroundColor Red
-    Write-Host "    Create it: python -m venv venv" -ForegroundColor Red
-    Read-Host "Press Enter to exit"
-    exit 1
+    Write-Host "[*] Creating Python venv..." -ForegroundColor Yellow
+    $sysPython = (Get-Command python -ErrorAction SilentlyContinue).Source
+    if (-not $sysPython) { $sysPython = (Get-Command python3 -ErrorAction SilentlyContinue).Source }
+    if (-not $sysPython) {
+        Write-Host "[!] Python not found. Install Python 3.10+ and add to PATH." -ForegroundColor Red
+        Read-Host "Press Enter to exit"
+        exit 1
+    }
+    & $sysPython -m venv $venvDir
+    if (-not (Test-Path $venvPython)) {
+        Write-Host "[!] Failed to create venv at $venvDir" -ForegroundColor Red
+        Read-Host "Press Enter to exit"
+        exit 1
+    }
+    Write-Host "[+] Venv created." -ForegroundColor Green
+}
+if (Test-Path $venvPip) {
+    Write-Host "[*] Ensuring backend dependencies..." -ForegroundColor Yellow
+    $reqFile = Join-Path $root "backend\requirements.txt"
+    & $venvPip install -q -r $reqFile
+    Write-Host "[+] Backend dependencies OK." -ForegroundColor Green
+}
+
+# --- Create backend .env from example if missing ---
+$backendEnv = Join-Path $root "backend\.env"
+$backendEnvExample = Join-Path $root "backend\.env.example"
+if (-not (Test-Path $backendEnv) -and (Test-Path $backendEnvExample)) {
+    Write-Host "[*] Creating backend\.env from .env.example for local dev..." -ForegroundColor Yellow
+    Copy-Item $backendEnvExample $backendEnv
+    Add-Content $backendEnv "`n# Local dev"
+    Add-Content $backendEnv "DEV_MODE=true"
+    Write-Host "[+] backend\.env created (DEV_MODE=true). Edit if you need BOT_TOKEN, API keys, etc." -ForegroundColor Green
 }
 
 # --- Check backend DB ---

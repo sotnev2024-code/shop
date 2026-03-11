@@ -19,6 +19,7 @@ from app.db.session import get_db
 from app.db.models.user import User
 from app.db.models.app_config import AppConfig
 from app.db.models.bonus_transaction import BonusTransaction
+from app.db.models.competition_accrual import CompetitionAccrual
 from app.bot.bot import is_bot_configured
 
 logger = logging.getLogger(__name__)
@@ -75,6 +76,7 @@ async def get_current_user(
                 await db.commit()
                 await db.refresh(user)
                 await _apply_welcome_bonus(db, user)
+                await _apply_competition_monthly_bonus(db, user)
             except Exception:
                 # Race condition: another request already created the user
                 await db.rollback()
@@ -124,8 +126,32 @@ async def get_current_user(
         await db.commit()
         await db.refresh(user)
         await _apply_welcome_bonus(db, user)
+        await _apply_competition_monthly_bonus(db, user)
 
     return user
+
+
+async def _apply_competition_monthly_bonus(db: AsyncSession, user: User) -> None:
+    """Add initial competition points accrual for new users (monthly bonus)."""
+    accrual = CompetitionAccrual(
+        user_id=user.id,
+        amount=10_000,
+        kind="monthly_bonus",
+        description="Месячный бонус",
+    )
+    db.add(accrual)
+    await db.commit()
+
+
+async def get_current_user_optional(
+    x_init_data: Optional[str] = Header(None, alias="X-Init-Data"),
+    db: AsyncSession = Depends(get_db),
+) -> Optional[User]:
+    """Like get_current_user but returns None if no/invalid auth (no 401)."""
+    try:
+        return await get_current_user(x_init_data=x_init_data, db=db)
+    except HTTPException:
+        return None
 
 
 async def _apply_welcome_bonus(db: AsyncSession, user: User) -> None:

@@ -158,6 +158,14 @@ export const adminAddModificationTypeValue = (typeId: number, data: { value: str
   api.post<import('../types').ModificationValue>(`/admin/modification-types/${typeId}/values`, data);
 export const adminDeleteModificationTypeValue = (typeId: number, valueId: number) =>
   api.delete(`/admin/modification-types/${typeId}/values/${valueId}`);
+
+// Football competition: admin tools
+export const adminSettlePendingBets = (maxBets: number = 200) =>
+  api.post<{ processed: number; wins: number; losses: number; skipped: number }>(
+    '/football/settle-pending-bets',
+    null,
+    { params: { max_bets: maxBets } },
+  );
 export const adminGetProductVariants = (productId: number) =>
   api.get<ProductVariant[]>(`/admin/products/${productId}/variants`);
 export const adminSetProductVariants = (productId: number, items: { modification_type_id: number; value: string; quantity: number }[]) =>
