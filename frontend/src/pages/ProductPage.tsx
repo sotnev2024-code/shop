@@ -17,7 +17,15 @@ import { ProductCard } from '../components/ProductCard';
 import { useBackButton } from '../hooks/useBackButton';
 
 export const ProductPage: React.FC = () => {
-  useBackButton();
+  const handleBack = () => {
+    if (window.history.length <= 1 || (window.history.state && window.history.state.idx === 0)) {
+      navigate('/', { replace: true });
+    } else {
+      navigate(-1);
+    }
+  };
+
+  useBackButton(handleBack);
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const config = useConfigStore((s) => s.config);
@@ -243,7 +251,7 @@ export const ProductPage: React.FC = () => {
         )}
 
         <button
-          onClick={() => navigate(-1)}
+          onClick={handleBack}
           className="absolute top-4 left-4 w-10 h-10 rounded-full bg-white/80 backdrop-blur flex items-center justify-center z-10"
         >
           <ArrowLeft className="w-5 h-5" />

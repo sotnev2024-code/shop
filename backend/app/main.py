@@ -129,6 +129,25 @@ async def _autopost_job():
             pass
 
 
+async def _football_sync_job():
+    """Background job: settle pending bets hourly."""
+    try:
+        from app.db.session import async_session
+        from app.api.v1.football import _settle_pending_bets
+        async with async_session() as db:
+            stats = await _settle_pending_bets(db)
+            logger.info("Football bets sync complete: %s", stats)
+    except Exception as e:
+        logger.error("Football sync job failed: %s", e, exc_info=True)
+        try:
+            from app.db.session import async_session
+            from app.services.error_log_service import log_error, format_exception_traceback
+            async with async_session() as db:
+                await log_error(db, str(e), "ERROR", path="job:football_sync", source="job", traceback_str=format_exception_traceback(e))
+        except Exception:
+            pass
+
+
 async def _ensure_tables():
     """Create missing tables on startup (idempotent)."""
     from app.db.base import Base
@@ -285,9 +304,12 @@ async def lifespan(application: FastAPI):
     if is_bot_configured():
         scheduler.add_job(_daily_matches_job, "cron", hour=12, minute=0, id="daily_matches")
         scheduler.add_job(_autopost_job, "interval", minutes=1, id="autopost")
+        # Hourly football sync
+        scheduler.add_job(_football_sync_job, "interval", hours=1, id="football_sync")
+
         if not scheduler.running:
             scheduler.start()
-            logger.info("Scheduler started (daily matches, autopost every 1 min)")
+            logger.info("Scheduler started (daily matches, autopost, football sync)")
 
     yield
     # Shutdown

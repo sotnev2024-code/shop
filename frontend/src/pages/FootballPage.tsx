@@ -1,6 +1,8 @@
 import React from 'react';
+import { useBackButton } from '../hooks/useBackButton';
 
 export const FootballPage: React.FC = () => {
+  useBackButton();
   const src = `/footpredict.html`;
 
   return (
