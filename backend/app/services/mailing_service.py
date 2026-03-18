@@ -83,7 +83,7 @@ async def send_broadcast(
 
     telegram_ids = await get_recipients(db, audience)
     bot = get_bot()
-    button_url = (button_url or "").strip() or settings.webapp_url
+    button_url = (button_url or "").strip() or settings.tme_app_url
     reply_markup = None
     if button_text and button_text.strip():
         reply_markup = InlineKeyboardMarkup(

@@ -38,7 +38,7 @@ DEFAULT_TEMPLATES = {
     "daily_matches": {
         "text": "⚽ Матчи на {date}\n\n{matches_list}",
         "buttons": [
-            [{"text": "Открыть матчи", "url": "https://example.com/matches", "style": "primary"}],
+            [{"text": "Открыть матчи", "url": f"{settings.tme_app_url}?startapp=football", "style": "primary"}],
         ],
     },
 }

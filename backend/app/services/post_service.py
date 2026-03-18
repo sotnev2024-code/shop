@@ -38,13 +38,14 @@ def _get_webapp_url_https() -> str:
 
 
 def _build_product_url(product_id: int) -> str:
-    """Direct link to product in web app: https://<webapp>/product/<id>."""
-    return _get_webapp_url_https().rstrip("/") + f"/product/{product_id}"
+    """Direct link to product in web app via t.me/bot/app?startapp=product_ID."""
+    base = settings.tme_app_url.rstrip("/")
+    return f"{base}?startapp=product_{product_id}"
 
 
 def _build_shop_url() -> str:
-    """Direct link to web app (WEBAPP_URL)."""
-    return _get_webapp_url_https()
+    """Direct link to web app (t.me/bot/app)."""
+    return settings.tme_app_url
 
 
 def _color_to_style(button_color: Optional[str]) -> Optional[str]:

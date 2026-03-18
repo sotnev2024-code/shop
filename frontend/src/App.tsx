@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { useConfigStore } from './store/configStore';
 import { useCartStore } from './store/cartStore';
 import { useFavoritesStore } from './store/favoritesStore';
@@ -38,6 +38,7 @@ const SHOW_NAV_PATHS = ['/', '/favorites', '/cart', '/profile'];
 
 const App: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const fetchConfig = useConfigStore((s) => s.fetchConfig);
   const fetchCart = useCartStore((s) => s.fetchCart);
   const validateCart = useCartStore((s) => s.validateCart);
@@ -67,6 +68,21 @@ const App: React.FC = () => {
     fetchConfig();
     await fetchFavorites();
     await fetchCart();
+
+    // Handle deep links from Telegram startapp
+    const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
+    if (startParam) {
+      if (startParam.startsWith('product_')) {
+        const id = startParam.replace('product_', '');
+        navigate(`/product/${id}`, { replace: true });
+      } else if (startParam === 'football') {
+        navigate('/profile/football', { replace: true });
+      } else if (startParam === 'cart') {
+        navigate('/cart', { replace: true });
+      } else if (startParam === 'orders') {
+        navigate('/orders', { replace: true });
+      }
+    }
 
     // Validate favorites: remove out-of-stock
     const favRemoved = await validateFavorites();

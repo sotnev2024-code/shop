@@ -13,7 +13,11 @@ from app.config import settings
 from app.db.models.app_config import AppConfig
 from app.db.models.product import Product
 from app.db.models.product_variant import ProductVariant
-from app.services.post_service import send_post_to_channel, _absolute_photo_url
+from app.services.post_service import (
+        send_post_to_channel,
+        _absolute_photo_url,
+        _build_product_url,
+    )
 from app.services.bot_message_service import substitute_variables
 
 logger = logging.getLogger(__name__)
@@ -95,10 +99,6 @@ async def run_autopost(db: AsyncSession) -> bool:
         return False
 
     shop_name = getattr(config, "shop_name", None) or settings.shop_name or "Магазин"
-    product_url_base = (settings.webapp_url or "").rstrip("/")
-    if not product_url_base:
-        logger.warning("Autopost skipped: webapp_url not configured")
-        return False
 
     # Load products: available, with image
     products_result = await db.execute(
@@ -125,7 +125,7 @@ async def run_autopost(db: AsyncSession) -> bool:
     product = products_with_image[last_idx % len(products_with_image)]
     next_idx = (last_idx + 1) % len(products_with_image)
 
-    product_url = f"{product_url_base}/product/{product.id}"
+    product_url = _build_product_url(product.id)
     hide_price = getattr(config, "autopost_hide_price", False)
     context = _build_product_context(product, shop_name, product_url, hide_price)
 

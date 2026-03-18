@@ -40,6 +40,7 @@ class Settings(BaseSettings):
     # Bot
     bot_token: str = "YOUR_BOT_TOKEN_HERE"
     webapp_url: str = "http://localhost:3000"
+    tme_app_url: str = "https://t.me/Jersey_United_FC_bot/app"
     admin_chat_id: int = 0
     # Base URL for absolute links (e.g. photo in mailing). If empty, derived from webapp_url.
     public_base_url: str = ""
