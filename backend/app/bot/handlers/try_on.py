@@ -29,6 +29,38 @@ def _absolute_url(url: str) -> str:
     """Imported from post_service for consistency."""
     return _absolute_photo_url(url)
 
+@router.callback_query(F.data.startswith("check_sub:"))
+async def handle_check_sub(callback: CallbackQuery, state: FSMContext):
+    """Verify subscription and grant bonus attempts."""
+    product_id = int(callback.data.split(":")[1])
+    user_id = callback.from_user.id
+    
+    if not settings.channel_id:
+        await callback.answer("Настройка подписки отключена.")
+        return await handle_try_on_logic(callback, product_id, state)
+
+    try:
+        member = await callback.bot.get_chat_member(chat_id=settings.channel_id, user_id=user_id)
+        is_subscribed = member.status in ["member", "administrator", "creator"]
+    except Exception as e:
+        logger.error(f"Error checking channel membership: {e}")
+        is_subscribed = False
+
+    if is_subscribed:
+        async with async_session() as db:
+            result = await db.execute(select(User).where(User.telegram_id == user_id))
+            user = result.scalar_one_or_none()
+            if user and not user.try_on_bonus_received:
+                user.try_on_attempts += 3
+                user.try_on_bonus_received = True
+                await db.commit()
+                await callback.message.answer("Подписка подтверждена! Вам начислено **3 бесплатные примерки** ✨", parse_mode="Markdown")
+        
+        await callback.answer("Подписка подтверждена!")
+        await handle_try_on_logic(callback, product_id, state)
+    else:
+        await callback.answer("Вы всё еще не подписаны на канал 😔", show_alert=True)
+
 @router.message(Command("try_it_on"))
 async def cmd_try_it_on(message: Message):
     """Handle /try_it_on command."""
@@ -42,23 +74,80 @@ async def cmd_try_it_on(message: Message):
                 first_name=message.from_user.first_name,
                 last_name=message.from_user.last_name,
                 username=message.from_user.username,
-                try_on_attempts=3
+                try_on_attempts=0,
+                try_on_bonus_received=False
             )
             db.add(user)
             await db.commit()
             await db.refresh(user)
-            
+
+        # Check if they can get bonus by subscribing
+        if settings.channel_id and not user.try_on_bonus_received:
+            try:
+                member = await message.bot.get_chat_member(chat_id=settings.channel_id, user_id=message.from_user.id)
+                is_subscribed = member.status in ["member", "administrator", "creator"]
+            except Exception:
+                is_subscribed = False
+
+            if not is_subscribed:
+                keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="📢 Подписаться на канал", url=f"https://t.me/{settings.channel_id.replace('@', '')}")],
+                    [InlineKeyboardButton(text="✅ Проверить подписку", callback_data="check_sub_only")]
+                ])
+                await message.answer(
+                    "У вас пока нет доступных примерок. 😔\n\n"
+                    "Подпишитесь на наш канал и получите **3 бесплатные примерки**! ✨",
+                    reply_markup=keyboard,
+                    parse_mode="Markdown"
+                )
+                return
+            else:
+                # Subscribed but bonus not yet recorded
+                user.try_on_attempts += 3
+                user.try_on_bonus_received = True
+                await db.commit()
+                await message.answer("Спасибо за подписку! Вам начислено **3 бесплатные примерки** ✨", parse_mode="Markdown")
+
         if user.try_on_attempts <= 0:
             await message.answer(
-                "У вас закончились бесплатные примерки. 😔\n\n"
+                f"У вас 0 доступных примерок. 😔\n\n"
                 "Вы можете пополнить баланс с помощью команды /pay"
             )
             return
             
         await message.answer(
             f"У вас осталось {user.try_on_attempts} примерок. ✨\n\n"
-            "Чтобы примерить товар, перейдите в каталог, выберите понравившуюся вещь и нажмите кнопку '✨ Примерить' под описанием."
+            "Чтобы примерить товар, перейдите в каталог в приложении и нажмите кнопку 'Примерить' на карточке товара."
         )
+
+@router.callback_query(F.data == "check_sub_only")
+async def handle_check_sub_only(callback: CallbackQuery):
+    """Verify subscription from /try_it_on command without product_id."""
+    user_id = callback.from_user.id
+    if not settings.channel_id:
+        await callback.answer("Настройка подписки отключена.")
+        return
+
+    try:
+        member = await callback.bot.get_chat_member(chat_id=settings.channel_id, user_id=user_id)
+        is_subscribed = member.status in ["member", "administrator", "creator"]
+    except Exception:
+        is_subscribed = False
+
+    if is_subscribed:
+        async with async_session() as db:
+            result = await db.execute(select(User).where(User.telegram_id == user_id))
+            user = result.scalar_one_or_none()
+            if user and not user.try_on_bonus_received:
+                user.try_on_attempts += 3
+                user.try_on_bonus_received = True
+                await db.commit()
+                await callback.message.answer("Подписка подтверждена! Вам начислено **3 бесплатные примерки** ✨", parse_mode="Markdown")
+        
+        await callback.answer("Подписка подтверждена!")
+        await cmd_try_it_on(callback.message)
+    else:
+        await callback.answer("Вы всё еще не подписаны на канал 😔", show_alert=True)
 
 @router.callback_query(F.data.startswith("try_it_on:"))
 async def handle_try_on_callback(callback: CallbackQuery, state: FSMContext):
@@ -81,17 +170,54 @@ async def handle_try_on_logic(event: Union[Message, CallbackQuery], product_id: 
                 first_name=event.from_user.first_name,
                 last_name=event.from_user.last_name,
                 username=event.from_user.username,
-                try_on_attempts=3
+                try_on_attempts=0,
+                try_on_bonus_received=False
             )
             db.add(user)
             await db.commit()
             await db.refresh(user)
+
+        # 1. Check if subscription is required and not yet verified
+        if settings.channel_id:
+            try:
+                member = await event.bot.get_chat_member(chat_id=settings.channel_id, user_id=user_id)
+                is_subscribed = member.status in ["member", "administrator", "creator"]
+            except Exception as e:
+                logger.error(f"Error checking channel membership: {e}")
+                is_subscribed = False # Assume not subscribed on error for safety
+
+            if not is_subscribed:
+                # If not subscribed, check if they can get bonus later
+                channel_link = settings.channel_id if settings.channel_id.startswith("@") else f"t.me/{settings.channel_id.replace('-100', '')}"
+                if not channel_link.startswith("t.me"):
+                    # Try to get invite link if it's a private channel, but here we'll just assume @username or public
+                    pass
+                
+                keyboard = InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="📢 Подписаться на канал", url=f"https://t.me/{settings.channel_id.replace('@', '')}")],
+                    [InlineKeyboardButton(text="✅ Проверить подписку", callback_data=f"check_sub:{product_id}")]
+                ])
+                
+                await message.answer(
+                    "Чтобы воспользоваться функцией примерки, необходимо подписаться на наш канал! 📢\n\n"
+                    "После подписки вы получите **3 бесплатные примерки** ✨",
+                    reply_markup=keyboard,
+                    parse_mode="Markdown"
+                )
+                return
             
+            # If subscribed but hasn't received bonus yet
+            if not user.try_on_bonus_received:
+                user.try_on_attempts += 3
+                user.try_on_bonus_received = True
+                await db.commit()
+                await message.answer("Спасибо за подписку! Вам начислено **3 бесплатные примерки** ✨", parse_mode="Markdown")
+
         if user.try_on_attempts <= 0:
-            if isinstance(event, CallbackQuery):
-                await event.answer("У вас закончились попытки примерки.", show_alert=True)
-            else:
-                await event.answer("У вас закончились бесплатные примерки. 😔\n\nВы можете пополнить баланс с помощью команды /pay")
+            await message.answer(
+                "У вас закончились бесплатные примерки. 😔\n\n"
+                "Вы можете пополнить баланс с помощью команды /pay"
+            )
             return
 
         # Fetch product with media
