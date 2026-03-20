@@ -10,6 +10,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 _BACKEND_DIR = Path(__file__).resolve().parent.parent
 _ENV_FILE = _BACKEND_DIR / ".env"
 
+# Дополнительный поиск на уровень выше (на случай запуска из корня проекта)
+_ROOT_ENV_FILE = _BACKEND_DIR.parent / ".env"
+_ENV_FILES = [f for f in [_ENV_FILE, _ROOT_ENV_FILE] if f.exists()]
+
 
 class CheckoutType(str, Enum):
     BASIC = "basic"
@@ -26,9 +30,10 @@ class ProductSource(str, Enum):
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=str(_ENV_FILE) if _ENV_FILE.exists() else ".env",
+        env_file=tuple(str(f) for f in _ENV_FILES) if _ENV_FILES else ".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
+        extra="ignore"
     )
 
     # Dev

@@ -34,7 +34,7 @@ def _validate_init_data(init_data: str, bot_token: str) -> dict | None:
             return None
 
         data_check_string = "\n".join(
-            f"{k}={unquote(v)}" for k, v in sorted(parsed.items())
+            f"{k}={v}" for k, v in sorted(parsed.items())
         )
 
         secret_key = hmac.new(
@@ -99,6 +99,8 @@ async def get_current_user(
 
     validated = _validate_init_data(x_init_data, settings.bot_token)
     if validated is None:
+        if settings.bot_token == "YOUR_BOT_TOKEN_HERE":
+            logger.error("Auth failed: BOT_TOKEN is still default value. Check .env file.")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid initData",

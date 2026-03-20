@@ -824,7 +824,10 @@
 
             async function fetchJson(url, options = {}) {
                 try {
-                    const headers = { ...(options.headers || {}) };
+                    const headers = { 
+                        'Content-Type': 'application/json',
+                        ...(options.headers || {}) 
+                    };
                     if (window.Telegram?.WebApp?.initData) {
                         headers['X-Init-Data'] = window.Telegram.WebApp.initData;
                     }
@@ -1387,12 +1390,8 @@
                         const fixtureId = parseInt(matchId, 10) || 0;
                         if (!fixtureId) { tg?.showAlert?.('Ошибка: неверный матч'); return; }
 
-                        const headers = { 'Content-Type': 'application/json' };
-                        if (window.Telegram?.WebApp?.initData) headers['X-Init-Data'] = window.Telegram.WebApp.initData;
-                        const res = await fetch(`${API_BASE}/api/v1/football/bets`, {
+                        const resData = await fetchJson(`${API_BASE}/api/v1/football/bets`, {
                             method: 'POST',
-                            credentials: 'include',
-                            headers,
                             body: JSON.stringify({
                                 fixture_id: fixtureId,
                                 match_label: matchLabel,
@@ -1402,12 +1401,10 @@
                                 kickoff_at: match.kickoffAt || null,
                             }),
                         });
-                        const data = await res.json().catch(() => ({}));
-                        if (!res.ok || !data.success) {
-                            tg?.showAlert?.(data.detail || 'Не удалось принять ставку');
+                        if (!resData || !resData.success) {
+                            tg?.showAlert?.(resData?.detail || 'Не удалось принять ставку');
                             return;
                         }
-                        const resData = data;
                         userBalance = resData.competition_points_balance;
                         updateBalanceUI();
                         const potentialWin = Math.round(amount * odds * 100) / 100;
