@@ -66,16 +66,11 @@ async def handle_try_on_callback(callback: CallbackQuery, state: FSMContext):
     product_id = int(callback.data.split(":")[1])
     await handle_try_on_logic(callback, product_id, state)
 
-async def handle_try_on_logic(event: Union[Message, CallbackQuery], product_id: int, state: FSMContext = None):
+async def handle_try_on_logic(event: Union[Message, CallbackQuery], product_id: int, state: FSMContext):
     """Start try-on flow from either a button click (CallbackQuery) or deep link (Message)."""
     user_id = event.from_user.id
     message = event if isinstance(event, Message) else event.message
     
-    # If state is not provided (e.g. from deep link), we need to get it manually
-    if state is None:
-        from app.bot.bot import dp
-        state = dp.fsm.get_context(event.bot, user_id, user_id)
-
     async with async_session() as db:
         result = await db.execute(select(User).where(User.telegram_id == user_id))
         user = result.scalar_one_or_none()
@@ -114,12 +109,12 @@ async def handle_try_on_logic(event: Union[Message, CallbackQuery], product_id: 
                 await event.answer("Товар не найден.")
             return
             
-        # Collect all image URLs
+        # Collect all image URLs and make them absolute
         images = []
         if product.media:
-            images = [m.file_path for m in sorted(product.media, key=lambda x: x.sort_order) if m.media_type == "image"]
+            images = [_absolute_url(m.file_path) for m in sorted(product.media, key=lambda x: x.sort_order) if m.media_type == "image"]
         if not images and product.image_url:
-            images = [product.image_url]
+            images = [_absolute_url(product.image_url)]
             
         if not images:
             if isinstance(event, CallbackQuery):
@@ -147,18 +142,23 @@ async def show_image_selection(message: Message, image_url: str, idx: int, total
         [InlineKeyboardButton(text="✅ Выбрать это фото", callback_data=f"try_on_select:{idx}")]
     ])
     
-    # If it's an update, edit the existing message
-    if message.photo:
-        await message.edit_media(
-            media=types.InputMediaPhoto(media=image_url, caption="Выберите фотографию товара для примерки:"),
-            reply_markup=keyboard
-        )
-    else:
-        await message.answer_photo(
-            photo=image_url,
-            caption="Выберите фотографию товара для примерки:",
-            reply_markup=keyboard
-        )
+    # Try to use answer_photo if it's not an update to an existing photo message
+    try:
+        if message.photo:
+            await message.edit_media(
+                media=types.InputMediaPhoto(media=image_url, caption="Выберите фотографию товара для примерки:"),
+                reply_markup=keyboard
+            )
+        else:
+            await message.answer_photo(
+                photo=image_url,
+                caption="Выберите фотографию товара для примерки:",
+                reply_markup=keyboard
+            )
+    except Exception as e:
+        logger.error(f"Failed to show image selection: {e}")
+        # Fallback to message if photo fails
+        await message.answer(f"Выберите фотографию товара для примерки (не удалось загрузить превью):\n{image_url}", reply_markup=keyboard)
 
 @router.callback_query(F.data.startswith("try_on_prev:"))
 async def handle_prev_image(callback: CallbackQuery, state: FSMContext):

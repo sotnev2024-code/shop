@@ -206,7 +206,7 @@ export const ProductPage: React.FC = () => {
   if (!product) return null;
 
   return (
-    <div className="pb-24">
+    <div className="pb-44">
       {/* Media Gallery — z-0 чтобы кнопка «назад» и прочие элементы были поверх слайдера */}
       <div className="relative z-0">
         {mediaList.length > 1 ? (

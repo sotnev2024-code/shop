@@ -26,7 +26,7 @@ def _make_webapp_button(text: str, url: str, style: Optional[str] = None):
 
 
 @router.message(CommandStart())
-async def cmd_start(message: types.Message, command: CommandObject):
+async def cmd_start(message: types.Message, command: CommandObject, state: FSMContext):
     """Handle /start command — show Mini App button or product info via deep link."""
     webapp_url = settings.webapp_url
     payload = command.args  # e.g. "product_12"
@@ -51,7 +51,7 @@ async def cmd_start(message: types.Message, command: CommandObject):
 
         if product_id:
             from app.bot.handlers.try_on import handle_try_on_logic
-            await handle_try_on_logic(message, product_id)
+            await handle_try_on_logic(message, product_id, state)
             return
 
     # Welcome message (no product)
