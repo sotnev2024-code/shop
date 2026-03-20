@@ -254,10 +254,10 @@ async def handle_try_on_logic(event: Union[Message, CallbackQuery], product_id: 
         
         # Start selection flow
         await state.update_data(product_id=product_id, product_images=images, current_image_idx=0)
-        await show_image_selection(message, images[0], 0, len(images))
+        await show_image_selection(message, images[0], 0, len(images), state)
         await state.set_state(TryOnStates.selecting_product_image)
 
-async def show_image_selection(message: Message, image_url: str, idx: int, total: int):
+async def show_image_selection(message: Message, image_url: str, idx: int, total: int, state: FSMContext):
     """Show product image with navigation buttons."""
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
@@ -282,30 +282,57 @@ async def show_image_selection(message: Message, image_url: str, idx: int, total
                 reply_markup=keyboard
             )
     except Exception as e:
-        logger.error(f"Failed to show image selection: {e}")
-        # Fallback to message if photo fails
-        await message.answer(f"Выберите фотографию товара для примерки (не удалось загрузить превью):\n{image_url}", reply_markup=keyboard)
+        logger.warning(f"Failed to show image at index {idx}: {e}")
+        # Mark this image as broken by removing it from the list in state
+        data = await state.get_data()
+        images = list(data.get("product_images", []))
+        
+        if idx < len(images):
+            images.pop(idx)
+            await state.update_data(product_images=images)
+            
+            if not images:
+                await message.answer("К сожалению, не удалось загрузить ни одного изображения товара для примерки. 😔")
+                await state.clear()
+                return
+
+            # Try to show the next available image (or the first one if we were at the end)
+            new_idx = idx % len(images)
+            await state.update_data(current_image_idx=new_idx)
+            await show_image_selection(message, images[new_idx], new_idx, len(images), state)
+        else:
+            # Fallback if indices are messed up
+            await message.answer("Произошла ошибка при загрузке изображений товара. Попробуйте выбрать другой товар.")
+            await state.clear()
 
 @router.callback_query(F.data.startswith("try_on_prev:"))
 async def handle_prev_image(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     images = data.get("product_images", [])
+    if not images:
+        await callback.answer("Нет доступных изображений.")
+        return
+
     current_idx = int(callback.data.split(":")[1])
     new_idx = (current_idx - 1) % len(images)
     
     await state.update_data(current_image_idx=new_idx)
-    await show_image_selection(callback.message, images[new_idx], new_idx, len(images))
+    await show_image_selection(callback.message, images[new_idx], new_idx, len(images), state)
     await callback.answer()
 
 @router.callback_query(F.data.startswith("try_on_next:"))
 async def handle_next_image(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     images = data.get("product_images", [])
+    if not images:
+        await callback.answer("Нет доступных изображений.")
+        return
+
     current_idx = int(callback.data.split(":")[1])
     new_idx = (current_idx + 1) % len(images)
     
     await state.update_data(current_image_idx=new_idx)
-    await show_image_selection(callback.message, images[new_idx], new_idx, len(images))
+    await show_image_selection(callback.message, images[new_idx], new_idx, len(images), state)
     await callback.answer()
 
 @router.callback_query(F.data.startswith("try_on_select:"))
