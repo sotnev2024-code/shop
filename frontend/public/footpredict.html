@@ -451,25 +451,78 @@
         /* toggle buttons for history/accruals */
         .toggle-buttons {
             display: flex;
-            gap: 10px;
+            flex-direction: column;
+            gap: 12px;
             margin: 20px 0 16px;
         }
         .toggle-btn {
-            flex: 1;
+            width: 100%;
             background: #1b2432;
             border: 1px solid #2e3b4c;
-            border-radius: 40px;
-            padding: 14px 0;
+            border-radius: 16px;
+            padding: 16px 20px;
             font-weight: 600;
             color: #b0c4de;
-            text-align: center;
+            text-align: left;
             cursor: pointer;
             transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .toggle-btn::after {
+            content: '›';
+            font-size: 24px;
+            color: #5f738c;
         }
         .toggle-btn.active {
             background: #2d8a5e;
             border-color: #41b07c;
             color: white;
+        }
+        .toggle-btn.active::after {
+            color: white;
+        }
+
+        /* Sub-panel styling */
+        .sub-panel {
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+        .sub-panel.active {
+            display: block;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #5f7dbf;
+            font-weight: 600;
+            margin-bottom: 16px;
+            cursor: pointer;
+            width: fit-content;
+            padding: 4px 0;
+        }
+
+        .load-more-btn {
+            width: 100%;
+            background: #1e2532;
+            border: 1px solid #2e3a4a;
+            border-radius: 14px;
+            padding: 12px;
+            color: #8a9bb5;
+            font-weight: 600;
+            text-align: center;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+        .load-more-btn:active {
+            background: #2a3442;
         }
 
         /* history/accruals containers */
@@ -666,25 +719,37 @@
 
         <!-- Profile Panel (обновленный) -->
         <div id="panelProfile" class="panel">
-            <!-- шапка профиля с фото, именем, балансом -->
-            <div class="profile-header" id="profileHeader">
-                <!-- будет заполнено динамически -->
+            <div id="profileMainView">
+                <!-- шапка профиля с фото, именем, балансом -->
+                <div class="profile-header" id="profileHeader">
+                    <!-- будет заполнено динамически -->
+                </div>
+                
+                <!-- статистика (всего ставок и винрейт) -->
+                <div class="profile-stats" id="profileStats"></div>
+                
+                <!-- кнопки перехода в историю и начисления -->
+                <div class="toggle-buttons">
+                    <div class="toggle-btn" id="showHistoryBtn">📋 История ставок</div>
+                    <div class="toggle-btn" id="showAccrualsBtn">💰 Начисления</div>
+                </div>
+            </div>
+
+            <!-- Подпанель истории ставок -->
+            <div id="betHistorySubPanel" class="sub-panel">
+                <div class="back-btn" id="backToProfileFromHistory">← Назад</div>
+                <div class="section-title">📋 История ставок</div>
+                <div id="betHistoryContainer"></div>
+                <div id="loadMoreBets" class="load-more-btn" style="display: none;">Загрузить еще</div>
             </div>
             
-            <!-- статистика (всего ставок и винрейт) -->
-            <div class="profile-stats" id="profileStats"></div>
-            
-            <!-- кнопки переключения между историей и начислениями -->
-            <div class="toggle-buttons">
-                <div class="toggle-btn active" id="showHistoryBtn">📋 История ставок</div>
-                <div class="toggle-btn" id="showAccrualsBtn">💰 Начисления</div>
+            <!-- Подпанель начислений -->
+            <div id="accrualsSubPanel" class="sub-panel">
+                <div class="back-btn" id="backToProfileFromAccruals">← Назад</div>
+                <div class="section-title">💰 Начисления</div>
+                <div id="accrualsContainer"></div>
+                <div id="loadMoreAccruals" class="load-more-btn" style="display: none;">Загрузить еще</div>
             </div>
-            
-            <!-- контейнер для истории (активен по умолчанию) -->
-            <div id="betHistoryContainer"></div>
-            
-            <!-- контейнер для начислений (изначально скрыт) -->
-            <div id="accrualsContainer" style="display: none;"></div>
         </div>
     </div>
 
@@ -731,6 +796,7 @@
             let matches = [];
             let matchesLoaded = false;
             let matchesLoadError = false;
+            let isLoadingMatches = false;
 
             let leagues = ['Все'];
             let activeLeague = 'Все';
@@ -739,6 +805,8 @@
             // История и начисления (загружаются с API)
             let betHistory = [];
             let accruals = [];
+            let betsLimit = 10;
+            let accrualsLimit = 10;
 
             let leaderboardData = [];
             let leaderboardLoaded = false;
@@ -786,8 +854,9 @@
                 }
             }
 
-            async function loadBetHistory() {
-                const data = await fetchJson(`${API_BASE}/api/v1/football/bets/history`);
+            async function loadBetHistory(more = false) {
+                if (more) betsLimit += 10;
+                const data = await fetchJson(`${API_BASE}/api/v1/football/bets/history?limit=${betsLimit}`);
                 if (data && Array.isArray(data.bets)) {
                     betHistory = data.bets.map(b => ({
                         match: b.match,
@@ -798,6 +867,9 @@
                         created_at: b.created_at || null,
                         odds: b.odds,
                     }));
+                    // Show/hide load more button
+                    const btn = document.getElementById('loadMoreBets');
+                    if (btn) btn.style.display = data.bets.length >= betsLimit ? 'block' : 'none';
                 } else {
                     betHistory = [];
                 }
@@ -805,8 +877,9 @@
                 renderProfileStats();
             }
 
-            async function loadAccruals() {
-                const data = await fetchJson(`${API_BASE}/api/v1/football/accruals`);
+            async function loadAccruals(more = false) {
+                if (more) accrualsLimit += 10;
+                const data = await fetchJson(`${API_BASE}/api/v1/football/accruals?limit=${accrualsLimit}`);
                 if (data && Array.isArray(data.accruals)) {
                     accruals = data.accruals.map(a => ({
                         date: a.date,
@@ -814,6 +887,9 @@
                         points: a.points,
                         created_at: a.created_at || null,
                     }));
+                    // Show/hide load more button
+                    const btn = document.getElementById('loadMoreAccruals');
+                    if (btn) btn.style.display = data.accruals.length >= accrualsLimit ? 'block' : 'none';
                 } else {
                     accruals = [];
                 }
@@ -873,6 +949,8 @@
             }
 
             async function loadMatchesForDate(dateStr) {
+                if (isLoadingMatches) return;
+                isLoadingMatches = true;
                 matchesLoadError = false;
                 renderMatches();
                 const url = dateStr
@@ -880,6 +958,7 @@
                     : `${API_BASE}/api/v1/football/matches/today`;
                 const data = await fetchJson(url);
                 matchesLoaded = true;
+                isLoadingMatches = false;
                 if (data && Array.isArray(data.matches)) {
                     adaptBackendMatches(data.matches);
                 } else {
@@ -950,7 +1029,7 @@
                 if (!container) return;
                 
                 let html = '';
-                betHistory.slice(0, 10).forEach((b, idx) => {
+                betHistory.forEach((b, idx) => {
                     const resultClass = b.result === 'win' ? 'win' : (b.result === 'loss' ? 'loss' : '');
                     const resultText = b.result === 'win' ? '✅' : (b.result === 'loss' ? '❌' : '⏳');
                     const payoutText = b.payout ? `+${b.payout}` : '';
@@ -980,7 +1059,7 @@
                 if (!container) return;
                 
                 let html = '';
-                accruals.slice(0, 10).forEach((a, idx) => {
+                accruals.forEach((a, idx) => {
                     const sign = a.points >= 0 ? '+' : '';
                     html += `
                         <div class="history-item clickable" data-type="accrual" data-index="${idx}">
@@ -1087,22 +1166,47 @@
             function setupProfileToggles() {
                 const historyBtn = document.getElementById('showHistoryBtn');
                 const accrualsBtn = document.getElementById('showAccrualsBtn');
-                const historyContainer = document.getElementById('betHistoryContainer');
-                const accrualsContainer = document.getElementById('accrualsContainer');
+                
+                const profileMainView = document.getElementById('profileMainView');
+                const betHistorySubPanel = document.getElementById('betHistorySubPanel');
+                const accrualsSubPanel = document.getElementById('accrualsSubPanel');
+                
+                const backFromHistory = document.getElementById('backToProfileFromHistory');
+                const backFromAccruals = document.getElementById('backToProfileFromAccruals');
+                
+                const loadMoreBets = document.getElementById('loadMoreBets');
+                const loadMoreAccruals = document.getElementById('loadMoreAccruals');
                 
                 historyBtn.addEventListener('click', () => {
-                    historyBtn.classList.add('active');
-                    accrualsBtn.classList.remove('active');
-                    historyContainer.style.display = 'block';
-                    accrualsContainer.style.display = 'none';
+                    profileMainView.style.display = 'none';
+                    betHistorySubPanel.classList.add('active');
+                    betsLimit = 10;
+                    loadBetHistory();
                 });
                 
                 accrualsBtn.addEventListener('click', () => {
-                    accrualsBtn.classList.add('active');
-                    historyBtn.classList.remove('active');
-                    accrualsContainer.style.display = 'block';
-                    historyContainer.style.display = 'none';
-                    renderAccruals(); // обновим на всякий случай
+                    profileMainView.style.display = 'none';
+                    accrualsSubPanel.classList.add('active');
+                    accrualsLimit = 10;
+                    loadAccruals();
+                });
+                
+                backFromHistory.addEventListener('click', () => {
+                    betHistorySubPanel.classList.remove('active');
+                    profileMainView.style.display = 'block';
+                });
+                
+                backFromAccruals.addEventListener('click', () => {
+                    accrualsSubPanel.classList.remove('active');
+                    profileMainView.style.display = 'block';
+                });
+                
+                loadMoreBets.addEventListener('click', () => {
+                    loadBetHistory(true);
+                });
+                
+                loadMoreAccruals.addEventListener('click', () => {
+                    loadAccruals(true);
                 });
             }
 
@@ -1110,8 +1214,8 @@
             function renderFullProfile() {
                 renderProfileHeader();
                 renderProfileStats();
-                renderBetHistory();
-                renderAccruals();
+                // renderBetHistory(); // calling only when subpanel is active
+                // renderAccruals(); // calling only when subpanel is active
             }
 
             // Filters and matches
@@ -1198,7 +1302,7 @@
             }
 
             async function loadLeaderboard() {
-                const data = await fetchJson(`${API_BASE}/api/v1/football/leaderboard`);
+                const data = await fetchJson(`${API_BASE}/api/v1/football/leaderboard?limit=5`);
                 leaderboardLoaded = true;
                 if (data && Array.isArray(data.leaderboard)) {
                     leaderboardData = data.leaderboard;

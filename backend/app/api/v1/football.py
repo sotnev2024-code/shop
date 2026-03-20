@@ -463,7 +463,7 @@ async def get_football_points(
 
 @router.get("/football/leaderboard")
 async def get_football_leaderboard(
-    limit: int = 100,
+    limit: int = 5,
     db: AsyncSession = Depends(get_db),
 ):
     """
