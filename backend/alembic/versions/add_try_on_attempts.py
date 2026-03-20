@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 revision: str = "add_try_on_attempts"
-down_revision: Union[str, None] = "move_banner_to_app"
+down_revision: Union[str, None] = "add_autopost_settings"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
