@@ -123,7 +123,11 @@ async def _send_product_message(message: types.Message, product_id: int, webapp_
 
         btn1 = _make_webapp_button(btn_product_text, product_url, btn_product_style)
         btn2 = _make_webapp_button(btn_shop_text, webapp_url, btn_shop_style)
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[[btn1], [btn2]])
+        
+        # Add "Try it on" button
+        btn_try_on = InlineKeyboardButton(text="✨ Примерить", callback_data=f"try_it_on:{product_id}")
+        
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[[btn1], [btn_try_on], [btn2]])
 
         # Try to send with photo
         image_url = None

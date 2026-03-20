@@ -24,6 +24,7 @@ class User(Base):
     )
     bonus_balance: Mapped[float] = mapped_column(Numeric(10, 2), default=0)
     competition_points_balance: Mapped[float] = mapped_column(Numeric(12, 2), default=10_000)
+    try_on_attempts: Mapped[int] = mapped_column(default=3)
 
     cart_items: Mapped[List["CartItem"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     favorites: Mapped[List["Favorite"]] = relationship(back_populates="user", cascade="all, delete-orphan")

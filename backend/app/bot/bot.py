@@ -77,7 +77,7 @@ async def fetch_and_cache_bot_photo():
 async def setup_bot():
     """Register all handlers and setup bot commands."""
     from aiogram.types import ErrorEvent
-    from app.bot.handlers import start, orders as order_handlers
+    from app.bot.handlers import start, orders as order_handlers, try_on
     from app.db.session import async_session
     from app.services.error_log_service import log_error, format_exception_traceback
 
@@ -98,6 +98,7 @@ async def setup_bot():
 
     dp.include_router(start.router)
     dp.include_router(order_handlers.router)
+    dp.include_router(try_on.router)
 
     # Cache bot photo
     await fetch_and_cache_bot_photo()
