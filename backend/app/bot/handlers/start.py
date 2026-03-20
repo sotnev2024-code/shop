@@ -42,6 +42,18 @@ async def cmd_start(message: types.Message, command: CommandObject):
             await _send_product_message(message, product_id, webapp_url)
             return
 
+    # Deep link: /start tryon_<id>
+    if payload and payload.startswith("tryon_"):
+        try:
+            product_id = int(payload.replace("tryon_", ""))
+        except (ValueError, TypeError):
+            product_id = None
+
+        if product_id:
+            from app.bot.handlers.try_on import handle_try_on_logic
+            await handle_try_on_logic(message, product_id)
+            return
+
     # Welcome message (no product)
     async with async_session() as db:
         tpl = await get_template(db, "welcome")

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Heart, Minus, Plus, ShoppingCart, Check, Share2 } from 'lucide-react';
+import { ArrowLeft, Heart, Minus, Plus, ShoppingCart, Check, Share2, Sparkles } from 'lucide-react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Pagination } from 'swiper/modules';
 import 'swiper/css';
@@ -143,6 +143,21 @@ export const ProductPage: React.FC = () => {
     if (!product) return;
     await toggleFav(product.id, isProductFavorite, product);
     setProduct((prev) => prev ? { ...prev, is_favorite: !isProductFavorite } : prev);
+  };
+
+  const handleTryOn = () => {
+    if (!product) return;
+    const botUsername = config?.bot_username;
+    if (!botUsername) {
+      window.Telegram?.WebApp?.showAlert?.('Функция примерки временно недоступна');
+      return;
+    }
+    const url = `https://t.me/${botUsername}?start=tryon_${product.id}`;
+    if (window.Telegram?.WebApp?.openTelegramLink) {
+      window.Telegram.WebApp.openTelegramLink(url);
+    } else {
+      window.open(url, '_blank');
+    }
   };
 
   const handleShare = () => {
@@ -420,7 +435,17 @@ export const ProductPage: React.FC = () => {
       )}
 
       {/* Fixed bottom button */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-tg-bg border-t border-tg-secondary">
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-tg-bg border-t border-tg-secondary space-y-2">
+        <Button
+          onClick={handleTryOn}
+          fullWidth
+          variant="secondary"
+          size="lg"
+          className="bg-purple-500/10 text-purple-600 border-purple-200 hover:bg-purple-500/20"
+        >
+          <Sparkles className="w-5 h-5 mr-2" />
+          Примерить в боте
+        </Button>
         {justAdded ? (
           <Button fullWidth size="lg" className="bg-green-500 hover:bg-green-500">
             <Check className="w-5 h-5 mr-2" />

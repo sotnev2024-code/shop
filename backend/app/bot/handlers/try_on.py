@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from typing import Optional, List
+from typing import Optional, List, Union
 
 from aiogram import Router, types, F
 from aiogram.filters import Command
@@ -64,17 +64,28 @@ async def cmd_try_it_on(message: Message):
 async def handle_try_on_callback(callback: CallbackQuery, state: FSMContext):
     """Handle 'Try it on' button click."""
     product_id = int(callback.data.split(":")[1])
+    await handle_try_on_logic(callback, product_id, state)
+
+async def handle_try_on_logic(event: Union[Message, CallbackQuery], product_id: int, state: FSMContext = None):
+    """Start try-on flow from either a button click (CallbackQuery) or deep link (Message)."""
+    user_id = event.from_user.id
+    message = event if isinstance(event, Message) else event.message
     
+    # If state is not provided (e.g. from deep link), we need to get it manually
+    if state is None:
+        from app.bot.bot import dp
+        state = dp.fsm.get_context(event.bot, user_id, user_id)
+
     async with async_session() as db:
-        result = await db.execute(select(User).where(User.telegram_id == callback.from_user.id))
+        result = await db.execute(select(User).where(User.telegram_id == user_id))
         user = result.scalar_one_or_none()
         
         if not user:
             user = User(
-                telegram_id=callback.from_user.id,
-                first_name=callback.from_user.first_name,
-                last_name=callback.from_user.last_name,
-                username=callback.from_user.username,
+                telegram_id=user_id,
+                first_name=event.from_user.first_name,
+                last_name=event.from_user.last_name,
+                username=event.from_user.username,
                 try_on_attempts=3
             )
             db.add(user)
@@ -82,7 +93,10 @@ async def handle_try_on_callback(callback: CallbackQuery, state: FSMContext):
             await db.refresh(user)
             
         if user.try_on_attempts <= 0:
-            await callback.answer("У вас закончились попытки примерки.", show_alert=True)
+            if isinstance(event, CallbackQuery):
+                await event.answer("У вас закончились попытки примерки.", show_alert=True)
+            else:
+                await event.answer("У вас закончились бесплатные примерки. 😔\n\nВы можете пополнить баланс с помощью команды /pay")
             return
 
         # Fetch product with media
@@ -94,7 +108,10 @@ async def handle_try_on_callback(callback: CallbackQuery, state: FSMContext):
         product = result.scalar_one_or_none()
         
         if not product:
-            await callback.answer("Товар не найден.", show_alert=True)
+            if isinstance(event, CallbackQuery):
+                await event.answer("Товар не найден.", show_alert=True)
+            else:
+                await event.answer("Товар не найден.")
             return
             
         # Collect all image URLs
@@ -105,14 +122,18 @@ async def handle_try_on_callback(callback: CallbackQuery, state: FSMContext):
             images = [product.image_url]
             
         if not images:
-            await callback.answer("У этого товара нет изображений для примерки.", show_alert=True)
+            if isinstance(event, CallbackQuery):
+                await event.answer("У этого товара нет изображений для примерки.", show_alert=True)
+            else:
+                await event.answer("У этого товара нет изображений для примерки.")
             return
 
-        await callback.answer()
+        if isinstance(event, CallbackQuery):
+            await event.answer()
         
         # Start selection flow
         await state.update_data(product_id=product_id, product_images=images, current_image_idx=0)
-        await show_image_selection(callback.message, images[0], 0, len(images))
+        await show_image_selection(message, images[0], 0, len(images))
         await state.set_state(TryOnStates.selecting_product_image)
 
 async def show_image_selection(message: Message, image_url: str, idx: int, total: int):

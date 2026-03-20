@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Heart, ShoppingCart, Check, Minus, Plus, X } from 'lucide-react';
+import { Heart, ShoppingCart, Check, Minus, Plus, X, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Pagination } from 'swiper/modules';
@@ -10,6 +10,7 @@ import type { Product, ProductMedia } from '../types';
 import { useCartStore } from '../store/cartStore';
 import { useFavoritesStore } from '../store/favoritesStore';
 import { usePreferencesStore } from '../store/preferencesStore';
+import { useConfigStore } from '../store/configStore';
 
 interface ProductCardProps {
   product: Product;
@@ -17,6 +18,7 @@ interface ProductCardProps {
 
 export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const navigate = useNavigate();
+  const config = useConfigStore((s) => s.config);
   const addItem = useCartStore((s) => s.addItem);
   const updateItem = useCartStore((s) => s.updateItem);
   const cartItems = useCartStore((s) => s.items);
@@ -27,6 +29,21 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   const [justAdded, setJustAdded] = useState(false);
   const [showVariantPicker, setShowVariantPicker] = useState(false);
+
+  const handleTryOn = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const botUsername = config?.bot_username;
+    if (!botUsername) {
+      window.Telegram?.WebApp?.showAlert?.('Функция примерки временно недоступна');
+      return;
+    }
+    const url = `https://t.me/${botUsername}?start=tryon_${product.id}`;
+    if (window.Telegram?.WebApp?.openTelegramLink) {
+      window.Telegram.WebApp.openTelegramLink(url);
+    } else {
+      window.open(url, '_blank');
+    }
+  };
 
   const hasVariants = Boolean(product.modification_type && product.variants?.length);
   const outOfStock = hasVariants
@@ -189,6 +206,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             }`}
           />
         </button>
+
+        {/* Try on button */}
+        {!outOfStock && (
+          <button
+            onClick={handleTryOn}
+            className="absolute top-12 right-2 w-8 h-8 rounded-full bg-white/80 backdrop-blur flex items-center justify-center transition-transform active:scale-90 z-10"
+            title="Примерить"
+          >
+            <Sparkles className="w-4 h-4 text-purple-500" />
+          </button>
+        )}
 
         {/* Discount badge */}
         {product.old_price && !outOfStock && (
