@@ -3,6 +3,7 @@ from typing import Optional
 
 from aiogram import Router, types
 from aiogram.filters import CommandStart, CommandObject
+from aiogram.fsm.context import FSMContext
 from aiogram.types import WebAppInfo, InlineKeyboardMarkup, InlineKeyboardButton
 
 from app.config import settings
