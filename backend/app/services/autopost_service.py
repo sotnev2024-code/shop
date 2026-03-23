@@ -32,13 +32,16 @@ DEFAULT_TEMPLATE = """<b>{product_name}</b>
 Заказать можно по кнопке ниже👇"""
 
 
-def _get_product_image_url(product: Product) -> Optional[str]:
-    """Get first image URL from product (media or image_url)."""
+def _get_product_image_urls(product: Product) -> List[str]:
+    """Get all image URLs from product (media or image_url)."""
+    urls = []
     if product.media:
         for m in sorted(product.media, key=lambda x: x.sort_order):
             if m.media_type == "image" and m.file_path:
-                return m.file_path
-    return product.image_url
+                urls.append(m.file_path)
+    if product.image_url and product.image_url not in urls:
+        urls.append(product.image_url)
+    return urls
 
 
 def _build_product_context(
@@ -114,7 +117,7 @@ async def run_autopost(db: AsyncSession) -> bool:
     # Filter: must have image
     products_with_image: List[Product] = []
     for p in products:
-        if _get_product_image_url(p):
+        if _get_product_image_urls(p):
             products_with_image.append(p)
 
     if not products_with_image:
@@ -122,43 +125,55 @@ async def run_autopost(db: AsyncSession) -> bool:
         return False
 
     last_idx = getattr(config, "autopost_last_product_index", 0) or 0
-    product = products_with_image[last_idx % len(products_with_image)]
-    next_idx = (last_idx + 1) % len(products_with_image)
+    
+    # Try products starting from last_idx
+    num_products = len(products_with_image)
+    for i in range(num_products):
+        curr_idx = (last_idx + i) % num_products
+        product = products_with_image[curr_idx]
+        
+        product_url = _build_product_url(product.id)
+        hide_price = getattr(config, "autopost_hide_price", False)
+        context = _build_product_context(product, shop_name, product_url, hide_price)
 
-    product_url = _build_product_url(product.id)
-    hide_price = getattr(config, "autopost_hide_price", False)
-    context = _build_product_context(product, shop_name, product_url, hide_price)
+        template = getattr(config, "autopost_template", None) or DEFAULT_TEMPLATE
+        text = substitute_variables(template, context)
 
-    template = getattr(config, "autopost_template", None) or DEFAULT_TEMPLATE
-    text = substitute_variables(template, context)
+        button_text = getattr(config, "autopost_button_text", None) or "Заказать"
+        button_color = getattr(config, "autopost_button_color", None) or "green"
+        
+        photo_urls = _get_product_image_urls(product)
+        
+        # Try each photo for this product
+        for photo_url in photo_urls:
+            # Make photo URL absolute for Telegram
+            abs_photo_url = _absolute_photo_url(photo_url or "")
+            if not abs_photo_url:
+                continue
 
-    button_text = getattr(config, "autopost_button_text", None) or "Заказать"
-    button_color = getattr(config, "autopost_button_color", None) or "green"
-    photo_url = _get_product_image_url(product)
+            try:
+                await send_post_to_channel(
+                    channel_id=channel_id,
+                    text=text,
+                    photo_url=abs_photo_url,
+                    button_text=button_text,
+                    button_url=product_url,
+                    button_color=button_color,
+                )
+                # Success! Update index to the NEXT product and save
+                config.autopost_last_product_index = (curr_idx + 1) % num_products
+                await db.commit()
+                logger.info(f"Autopost sent: product {product.id} ({product.name}), photo={photo_url}")
+                return True
+            except Exception as e:
+                logger.error(f"Autopost failed for product {product.id} with photo {photo_url}: {e}")
+                # Continue to next photo for the same product
+                continue
+        
+        # If we are here, all photos for this product failed. 
+        # The outer loop will continue to the next product.
+        logger.warning(f"Autopost: all photos failed for product {product.id}, trying next product...")
 
-    if not photo_url:
-        return False
-
-    # Make photo URL absolute for Telegram
-    photo_url = _absolute_photo_url(photo_url or "")
-    if not photo_url:
-        logger.warning("Autopost skipped: could not build absolute photo URL")
-        return False
-
-    try:
-        await send_post_to_channel(
-            channel_id=channel_id,
-            text=text,
-            photo_url=photo_url,
-            button_text=button_text,
-            button_url=product_url,
-            button_color=button_color,
-        )
-        config.autopost_last_product_index = next_idx
-        await db.commit()
-        logger.info(f"Autopost sent: product {product.id} ({product.name})")
-        return True
-    except Exception as e:
-        logger.error(f"Autopost failed: {e}", exc_info=True)
-        await db.rollback()
-        return False
+    # If we are here, all products failed
+    logger.error("Autopost failed: could not send any product")
+    return False

@@ -21,6 +21,7 @@ import {
   adminGetErrorLogs,
   adminGetErrorLogDetail,
   adminDeleteErrorLogs,
+  adminDownloadErrorLogs,
 } from '../api/endpoints';
 import type { Category, ErrorLog, ModificationType, Product, BotMessageTemplates, BotMessageTemplateDailyMatches, BotTemplateDefaultsResponse } from '../types';
 import type { BulkPriceScope, BulkPriceOperation } from '../types';
@@ -51,6 +52,7 @@ export const AdminSettingsPage: React.FC = () => {
   const [bannerAspectShape, setBannerAspectShape] = useState<'square' | 'rectangle'>('rectangle');
   const [bannerSize, setBannerSize] = useState<'small' | 'medium' | 'large' | 'xl'>('medium');
   const [categoryImageSize, setCategoryImageSize] = useState<'small' | 'medium' | 'large' | 'xlarge'>('medium');
+  const [footballBettingEnabled, setFootballBettingEnabled] = useState(true);
   const [bonusEnabled, setBonusEnabled] = useState(false);
   const [bonusWelcomeEnabled, setBonusWelcomeEnabled] = useState(false);
   const [bonusWelcomeAmount, setBonusWelcomeAmount] = useState('0');
@@ -177,6 +179,26 @@ export const AdminSettingsPage: React.FC = () => {
     setErrorLogsLoading(false);
   };
 
+  const handleDownloadErrors = async (viaBot = false) => {
+    try {
+      const response = await adminDownloadErrorLogs(viaBot);
+      if (viaBot) {
+        alert('Логи ошибок отправлены вам в Telegram!');
+      } else {
+        const url = window.URL.createObjectURL(new Blob([response.data as any]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `error_logs_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '_')}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+      }
+    } catch (err: any) {
+      const msg = err.response?.data?.detail ?? err.message ?? 'Ошибка скачивания';
+      alert(typeof msg === 'string' ? msg : JSON.stringify(msg));
+    }
+  };
+
   // Полный плоский список (для массовых цен и др.): корни + все дети
   const flattenedCategories = useMemo(() => {
     const roots = categories.filter((c) => !c.parent_id).sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
@@ -238,6 +260,7 @@ export const AdminSettingsPage: React.FC = () => {
     setBannerAspectShape(data.banner_aspect_shape === 'square' ? 'square' : 'rectangle');
     setBannerSize(data.banner_size === 'small' ? 'small' : data.banner_size === 'large' ? 'large' : data.banner_size === 'xl' ? 'xl' : 'medium');
     setCategoryImageSize(data.category_image_size === 'small' ? 'small' : data.category_image_size === 'large' ? 'large' : data.category_image_size === 'xlarge' ? 'xlarge' : 'medium');
+    setFootballBettingEnabled(!!data.football_betting_enabled);
     setBonusEnabled(!!data.bonus_enabled);
     setBonusWelcomeEnabled(!!data.bonus_welcome_enabled);
     setBonusWelcomeAmount(String(data.bonus_welcome_amount ?? 0));
@@ -299,6 +322,7 @@ export const AdminSettingsPage: React.FC = () => {
         banner_aspect_shape: bannerAspectShape,
         banner_size: bannerSize,
         category_image_size: categoryImageSize,
+        football_betting_enabled: footballBettingEnabled,
         bonus_enabled: bonusEnabled,
         bonus_welcome_enabled: bonusWelcomeEnabled,
         bonus_welcome_amount: parseFloat(bonusWelcomeAmount) || 0,
@@ -980,6 +1004,11 @@ export const AdminSettingsPage: React.FC = () => {
       {activeSection === 'bonuses' && (
         <div className="space-y-4">
           <h2 className="text-base font-semibold text-tg-text">Бонусная система</h2>
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" checked={footballBettingEnabled} onChange={(e) => setFootballBettingEnabled(e.target.checked)} className="w-5 h-5 rounded" />
+            <span className="text-tg-text">Включить раздел «Ставки на футбол» в профиле</span>
+          </label>
+
           <label className="flex items-center gap-3 cursor-pointer">
             <input type="checkbox" checked={bonusEnabled} onChange={(e) => setBonusEnabled(e.target.checked)} className="w-5 h-5 rounded" />
             <span className="text-sm text-tg-text">Включить бонусную систему</span>
@@ -1884,6 +1913,12 @@ export const AdminSettingsPage: React.FC = () => {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-base font-semibold text-tg-text">Логи ошибок</h2>
           <div className="flex gap-2">
+            <Button size="sm" onClick={() => handleDownloadErrors(false)} disabled={errorLogsLoading || errorLogs.length === 0} variant="secondary">
+              Скачать CSV
+            </Button>
+            <Button size="sm" onClick={() => handleDownloadErrors(true)} disabled={errorLogsLoading || errorLogs.length === 0} variant="secondary">
+              В бота
+            </Button>
             <Button size="sm" onClick={fetchErrorLogs} disabled={errorLogsLoading}>
               {errorLogsLoading ? 'Загрузка…' : 'Обновить'}
             </Button>

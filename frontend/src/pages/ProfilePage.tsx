@@ -92,12 +92,14 @@ export const ProfilePage: React.FC = () => {
           onClick: () => navigate('/profile/bonuses'),
         }]
       : []),
-    {
-      icon: Trophy,
-      label: 'Ставки на футбол',
-      subtitle: 'Матчи и турнир с призами',
-      onClick: handleOpenFootballWebApp,
-    },
+    ...(config?.football_betting_enabled !== false
+      ? [{
+          icon: Trophy,
+          label: 'Ставки на футбол',
+          subtitle: 'Матчи и турнир с призами',
+          onClick: handleOpenFootballWebApp,
+        }]
+      : []),
     {
       icon: Package,
       label: 'Мои заказы',

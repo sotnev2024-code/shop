@@ -33,6 +33,8 @@ class AppConfigResponse(BaseModel):
     banner_aspect_shape: str = "rectangle"
     banner_size: str = "medium"
     category_image_size: str = "medium"
+    # Football betting
+    football_betting_enabled: bool = True
     # Bonus system
     bonus_enabled: bool = False
     bonus_welcome_enabled: bool = False

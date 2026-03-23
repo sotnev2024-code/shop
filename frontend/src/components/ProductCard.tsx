@@ -40,6 +40,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
     const url = `https://t.me/${botUsername}?start=tryon_${product.id}`;
     if (window.Telegram?.WebApp?.openTelegramLink) {
       window.Telegram.WebApp.openTelegramLink(url);
+      // Close the Mini App so user returns to the bot chat
+      setTimeout(() => {
+        window.Telegram?.WebApp?.close?.();
+      }, 100);
     } else {
       window.open(url, '_blank');
     }

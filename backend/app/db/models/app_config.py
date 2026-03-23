@@ -81,6 +81,7 @@ class AppConfig(Base):
     autopost_hide_price: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # --- Bonus system (admin-editable) ---
+    football_betting_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     bonus_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     bonus_welcome_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     bonus_welcome_amount: Mapped[float] = mapped_column(Float, default=0)

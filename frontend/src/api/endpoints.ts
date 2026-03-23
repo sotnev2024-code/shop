@@ -123,6 +123,9 @@ export const adminGetErrorLogs = (limit = 100) =>
 export const adminDeleteErrorLogs = () =>
   api.delete<{ ok: boolean; deleted: number }>('/admin/error-logs');
 
+export const adminDownloadErrorLogs = (viaBot = false) =>
+  api.get('/admin/error-logs/download', { params: { via_bot: viaBot }, responseType: viaBot ? 'json' : 'blob' });
+
 export const adminGetErrorLogDetail = (id: number) =>
   api.get(`/admin/error-logs/${id}`);
 export const adminGetProducts = (params?: {

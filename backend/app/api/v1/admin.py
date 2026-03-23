@@ -5,12 +5,15 @@ import logging
 import os
 import uuid
 import shutil
+import io
+import csv
 from decimal import Decimal
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Optional, Set, Tuple
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi.responses import StreamingResponse
 from sqlalchemy import select, func, delete, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
@@ -184,6 +187,59 @@ async def admin_get_error_log_detail(
         "traceback": log.traceback,
         "extra": log.extra,
     }
+
+
+@router.get("/error-logs/download")
+async def admin_download_error_logs(
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+    via_bot: bool = Query(False),
+):
+    """Download all error logs as CSV or send to bot."""
+    result = await db.execute(select(ErrorLog).order_by(ErrorLog.created_at.desc()))
+    logs = result.scalars().all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["ID", "Time", "Path", "Method", "Status Code", "Message", "Traceback", "Extra"])
+
+    for log in logs:
+        writer.writerow([
+            log.id,
+            log.created_at.strftime("%Y-%m-%d %H:%M:%S") if log.created_at else "—",
+            log.path or "—",
+            log.method or "—",
+            log.status_code if log.status_code is not None else "—",
+            log.message or "—",
+            log.traceback or "—",
+            json.dumps(log.extra) if log.extra else ""
+        ])
+
+    filename = f"error_logs_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+    
+    if via_bot:
+        from app.bot.bot import get_bot
+        bot = get_bot()
+        if bot:
+            from aiogram.types import BufferedInputFile
+            file_data = output.getvalue().encode("utf-8")
+            try:
+                await bot.send_document(
+                    chat_id=admin.telegram_id,
+                    document=BufferedInputFile(file_data, filename=filename),
+                    caption=f"Выгрузка логов ошибок ({len(logs)} записей)"
+                )
+                return {"ok": True, "sent_to_bot": True}
+            except Exception as e:
+                logger.error(f"Failed to send logs to bot: {e}")
+                # Fallback to direct download if bot fails
+
+    output.seek(0)
+    return StreamingResponse(
+        io.BytesIO(output.getvalue().encode("utf-8")),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
 
 
 @router.delete("/error-logs")
@@ -1492,6 +1548,7 @@ async def admin_get_settings(
         "bonus_spend_enabled": getattr(config, "bonus_spend_enabled", False),
         "bonus_spend_limit_type": getattr(config, "bonus_spend_limit_type", "percent"),
         "bonus_spend_limit_value": float(getattr(config, "bonus_spend_limit_value", 0)),
+        "football_betting_enabled": getattr(config, "football_betting_enabled", True),
         "bot_message_templates": templates,
         "autopost_enabled": getattr(config, "autopost_enabled", False),
         "autopost_times": _parse_autopost_times(getattr(config, "autopost_times", None)),
@@ -1535,6 +1592,7 @@ async def admin_update_settings(
         "bonus_enabled", "bonus_welcome_enabled", "bonus_welcome_amount",
         "bonus_purchase_enabled", "bonus_purchase_percent",
         "bonus_spend_enabled", "bonus_spend_limit_type", "bonus_spend_limit_value",
+        "football_betting_enabled",
         "delivery_cost", "free_delivery_min_amount",
         "min_order_amount_pickup", "min_order_amount_delivery",
         "autopost_enabled", "autopost_times", "autopost_posts_per_day",
@@ -1555,7 +1613,7 @@ async def admin_update_settings(
                 value = max(1, min(10, int(value))) if value not in (None, "") else 2
             except (TypeError, ValueError):
                 value = 2
-        if key in ("autopost_enabled", "autopost_hide_price"):
+        if key in ("autopost_enabled", "autopost_hide_price", "football_betting_enabled"):
             value = bool(value) if value not in (None, "") else False
         if key == "autopost_button_text":
             value = (value or "Заказать").strip() if isinstance(value, str) else "Заказать"
