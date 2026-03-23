@@ -26,6 +26,7 @@ export interface AppConfig {
   banner_aspect_shape: 'square' | 'rectangle';
   banner_size: 'small' | 'medium' | 'large' | 'xl';
   category_image_size: 'small' | 'medium' | 'large' | 'xlarge';
+  football_betting_enabled: boolean;
   bonus_enabled: boolean;
   bonus_welcome_enabled: boolean;
   bonus_welcome_amount: number;
