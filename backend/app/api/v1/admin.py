@@ -163,32 +163,6 @@ async def admin_get_error_logs(
     ]
 
 
-@router.get("/error-logs/{log_id}")
-async def admin_get_error_log_detail(
-    log_id: int,
-    db: AsyncSession = Depends(get_db),
-    admin: User = Depends(get_admin_user),
-):
-    """Return full details of a specific error log entry."""
-    log = await db.get(ErrorLog, log_id)
-    if not log:
-        raise HTTPException(status_code=404, detail="Error log not found")
-    return {
-        "id": log.id,
-        "created_at": log.created_at,
-        "level": log.level,
-        "message": log.message,
-        "path": log.path,
-        "method": log.method,
-        "status_code": log.status_code,
-        "client_ip": log.client_ip,
-        "user_agent": log.user_agent,
-        "request_body": log.request_body,
-        "traceback": log.traceback,
-        "extra": log.extra,
-    }
-
-
 @router.get("/error-logs/download")
 async def admin_download_error_logs(
     db: AsyncSession = Depends(get_db),
@@ -240,6 +214,32 @@ async def admin_download_error_logs(
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+
+@router.get("/error-logs/{log_id}")
+async def admin_get_error_log_detail(
+    log_id: int,
+    db: AsyncSession = Depends(get_db),
+    admin: User = Depends(get_admin_user),
+):
+    """Return full details of a specific error log entry."""
+    log = await db.get(ErrorLog, log_id)
+    if not log:
+        raise HTTPException(status_code=404, detail="Error log not found")
+    return {
+        "id": log.id,
+        "created_at": log.created_at,
+        "level": log.level,
+        "message": log.message,
+        "path": log.path,
+        "method": log.method,
+        "status_code": log.status_code,
+        "client_ip": log.client_ip,
+        "user_agent": log.user_agent,
+        "request_body": log.request_body,
+        "traceback": log.traceback,
+        "extra": log.extra,
+    }
 
 
 @router.delete("/error-logs")
