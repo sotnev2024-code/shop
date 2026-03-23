@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Package,
@@ -83,7 +83,7 @@ export const ProfilePage: React.FC = () => {
     navigate('/profile/football');
   };
 
-  const menuItems = [
+  const menuItems = useMemo(() => [
     ...(config?.bonus_enabled
       ? [{
           icon: Gift,
@@ -92,7 +92,7 @@ export const ProfilePage: React.FC = () => {
           onClick: () => navigate('/profile/bonuses'),
         }]
       : []),
-    ...(config?.football_betting_enabled !== false
+    ...(config?.football_betting_enabled
       ? [{
           icon: Trophy,
           label: 'Ставки на футбол',
@@ -125,7 +125,26 @@ export const ProfilePage: React.FC = () => {
       onClick: handleSupport,
       hidden: !config?.support_link,
     },
-  ];
+  ], [config, navigate]);
+
+  if (configLoading && !config) {
+    return (
+      <div className="p-4 space-y-4">
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-tg-secondary animate-pulse" />
+          <div className="space-y-2 flex-1">
+            <div className="h-6 w-1/2 bg-tg-secondary rounded animate-pulse" />
+            <div className="h-4 w-1/3 bg-tg-secondary rounded animate-pulse" />
+          </div>
+        </div>
+        <div className="space-y-2 mt-8">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="h-16 w-full bg-tg-secondary rounded-2xl animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="pb-20">
